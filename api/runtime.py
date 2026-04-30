@@ -14,7 +14,7 @@ from config.settings import Settings, get_settings
 from providers.registry import ProviderRegistry
 
 if TYPE_CHECKING:
-    from cli.manager import CLISessionManager
+    from core.cli.manager import CLISessionManager
     from messaging.handler import ClaudeMessageHandler
     from messaging.platforms.base import MessagingPlatform
     from messaging.session import SessionStore
@@ -174,7 +174,7 @@ class AppRuntime:
                 )
 
     async def _start_message_handler(self) -> None:
-        from cli.manager import CLISessionManager
+        from core.cli.manager import CLISessionManager
         from messaging.handler import ClaudeMessageHandler
         from messaging.session import SessionStore
 

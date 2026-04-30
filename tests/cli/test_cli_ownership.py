@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cli.session import CLISession
+from core.cli.session import CLISession
 
 
 def test_cli_session_owns_typed_runner_config(tmp_path: Path) -> None:

@@ -177,10 +177,11 @@ def test_convert_user_message_tool_result_list():
 
 
 def test_convert_user_message_mixed_text_and_tool_result():
-    # Note: Anthropic/OpenAI mapping usually separates these, but the converter handles lists
-    # User text usually comes before tool results in a turn, or after.
-    # The converter splits them into separate messages if they are different roles?
-    # Let's check logic: _convert_user_message returns a list of dicts.
+    # When a user turn contains both text and tool_results, text is dropped.
+    # Strict OpenAI providers (NIM) reject both "user→tool" and "tool→user"
+    # sequences, so there is no valid position for the text in the middle of
+    # the tool call/result handshake. The text is typically redundant with the
+    # tool result content (e.g. "Your tool call was malformed").
     content = [
         MockBlock(type="text", text="Here is the result:"),
         MockBlock(type="tool_result", tool_use_id="tool_789", content="42"),
@@ -188,10 +189,8 @@ def test_convert_user_message_mixed_text_and_tool_result():
     messages = [MockMessage("user", content)]
     result = AnthropicToOpenAIConverter.convert_messages(messages)
 
-    # Order is preserved: user text first, then tool result.
-    assert len(result) == 2
-    assert result[0] == {"role": "user", "content": "Here is the result:"}
-    assert result[1] == {"role": "tool", "tool_call_id": "tool_789", "content": "42"}
+    assert len(result) == 1
+    assert result[0] == {"role": "tool", "tool_call_id": "tool_789", "content": "42"}
 
 
 # --- Message Conversion Tests: Assistant ---
@@ -501,11 +500,12 @@ def test_convert_assistant_interleaved_order_preserved():
     assert len(msg["tool_calls"]) == 1
 
 
-def test_convert_user_message_text_before_tool_result_order():
-    """User message with text then tool_result should preserve order: user text first, then tool.
+def test_convert_user_message_text_before_tool_result_drops_text():
+    """Text is dropped when it appears alongside tool_results in the same user turn.
 
-    Bug: Current implementation emits tool_result immediately, then user text at end.
-    Anthropic order is typically: user says something, then provides tool results.
+    Neither "user→tool" nor "tool→user" is a valid OpenAI chat sequence when
+    the tool result must immediately follow the assistant's tool_calls, so the
+    text is discarded to keep the role sequence valid.
     """
     content = [
         MockBlock(type="text", text="Please use this result:"),
@@ -514,12 +514,28 @@ def test_convert_user_message_text_before_tool_result_order():
     messages = [MockMessage("user", content)]
     result = AnthropicToOpenAIConverter.convert_messages(messages)
 
-    assert len(result) == 2
-    # Expected: user text first, then tool result
-    assert result[0]["role"] == "user"
-    assert result[0]["content"] == "Please use this result:"
-    assert result[1]["role"] == "tool"
-    assert result[1]["tool_call_id"] == "t1"
+    assert len(result) == 1
+    assert result[0]["role"] == "tool"
+    assert result[0]["tool_call_id"] == "t1"
+
+
+def test_convert_user_message_text_after_tool_result_drops_text():
+    """Text appearing after tool_result is dropped, not reordered.
+
+    Both "tool→user" and "user→tool" are invalid in OpenAI chat when tool results
+    must immediately follow the assistant's tool_calls. Dropping the text is the
+    only way to keep the role sequence valid for strict providers like NIM.
+    """
+    content = [
+        MockBlock(type="tool_result", tool_use_id="t1", content="result"),
+        MockBlock(type="text", text="follow-up text"),
+    ]
+    messages = [MockMessage("user", content)]
+    result = AnthropicToOpenAIConverter.convert_messages(messages)
+
+    assert len(result) == 1
+    assert result[0]["role"] == "tool"
+    assert result[0]["tool_call_id"] == "t1"
 
 
 def test_convert_multiple_tool_results():

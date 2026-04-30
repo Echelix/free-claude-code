@@ -12,3 +12,6 @@ debug-*.log
 .coverage
 llama_cache
 .smoke-results
+.fcc.pid
+**/[Nn]otes.md
+**/.DS_Store

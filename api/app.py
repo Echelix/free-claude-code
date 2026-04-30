@@ -34,7 +34,9 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = get_settings()
     configure_logging(
-        settings.log_file, verbose_third_party=settings.log_raw_api_payloads
+        settings.log_file,
+        verbose_third_party=settings.log_raw_api_payloads,
+        truncate_on_start=settings.truncate_log_on_start,
     )
 
     app = FastAPI(

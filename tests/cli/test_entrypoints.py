@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 def _run_init(tmp_home: Path) -> tuple[str, Path]:
     """Run init() with home directory redirected to tmp_home. Returns (printed output, env_file path)."""
-    from cli.entrypoints import init
+    from core.cli.entrypoints import init
 
     env_file = tmp_home / ".config" / "free-claude-code" / ".env"
     printed: list[str] = []
@@ -44,7 +44,7 @@ def test_init_copies_template_content(tmp_path: Path) -> None:
 
 def test_env_template_loader_uses_root_template_in_source_checkout() -> None:
     """Source checkout fallback uses the root .env.example as the single source."""
-    from cli.entrypoints import _load_env_template
+    from core.cli.entrypoints import _load_env_template
 
     template = (Path(__file__).resolve().parents[2] / ".env.example").read_text(
         encoding="utf-8"

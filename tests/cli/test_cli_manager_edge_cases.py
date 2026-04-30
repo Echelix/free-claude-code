@@ -5,7 +5,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_register_real_session_id_moves_pending_to_active_and_maps():
-    from cli.manager import CLISessionManager
+    from core.cli.manager import CLISessionManager
 
     with patch("cli.manager.CLISession") as mock_session_cls:
         mock_session = MagicMock()
@@ -30,7 +30,7 @@ async def test_register_real_session_id_moves_pending_to_active_and_maps():
 
 @pytest.mark.asyncio
 async def test_register_real_session_id_missing_temp_id_returns_false():
-    from cli.manager import CLISessionManager
+    from core.cli.manager import CLISessionManager
 
     manager = CLISessionManager(workspace_path="/tmp", api_url="http://x/v1")
     ok = await manager.register_real_session_id("missing", "real_1")
@@ -39,7 +39,7 @@ async def test_register_real_session_id_missing_temp_id_returns_false():
 
 @pytest.mark.asyncio
 async def test_remove_session_pending_stops_and_returns_true():
-    from cli.manager import CLISessionManager
+    from core.cli.manager import CLISessionManager
 
     with patch("cli.manager.CLISession") as mock_session_cls:
         mock_session = MagicMock()
@@ -57,7 +57,7 @@ async def test_remove_session_pending_stops_and_returns_true():
 
 @pytest.mark.asyncio
 async def test_remove_session_active_removes_temp_mapping():
-    from cli.manager import CLISessionManager
+    from core.cli.manager import CLISessionManager
 
     with patch("cli.manager.CLISession") as mock_session_cls:
         mock_session = MagicMock()
@@ -80,7 +80,7 @@ async def test_remove_session_active_removes_temp_mapping():
 
 @pytest.mark.asyncio
 async def test_stop_all_handles_stop_exceptions():
-    from cli.manager import CLISessionManager
+    from core.cli.manager import CLISessionManager
 
     manager = CLISessionManager(workspace_path="/tmp", api_url="http://x/v1")
 

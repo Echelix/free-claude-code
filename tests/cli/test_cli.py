@@ -151,7 +151,7 @@ class TestCLISession:
 
     def test_session_init(self):
         """Test CLISession initialization."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession(
             workspace_path="/tmp/test",
@@ -164,7 +164,7 @@ class TestCLISession:
 
     def test_session_extract_session_id(self):
         """Test session ID extraction from various event formats."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -197,7 +197,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_basic_flow(self):
         """Test start_task running a basic command flow."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -241,7 +241,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_with_session_resume(self):
         """Test resuming an existing session."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -268,7 +268,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_with_session_resume_and_fork(self):
         """Test resuming an existing session and forking."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -295,7 +295,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_process_failure_with_stderr(self):
         """Test process exit with error code and stderr output."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -323,7 +323,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_stderr_while_stdout_streams(self):
         """Stderr is drained concurrently so stdout streaming is not blocked."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -352,7 +352,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_drain_stderr_bounded_retains_cap_but_drains_to_eof(self):
         """Oversized stderr is fully drained so the pipe cannot deadlock; capture is bounded."""
-        from cli.session import _MAX_STDERR_CAPTURE_BYTES, CLISession
+        from core.cli.session import _MAX_STDERR_CAPTURE_BYTES, CLISession
 
         total_len = _MAX_STDERR_CAPTURE_BYTES + 100_000
         remaining: dict[str, int] = {"n": total_len}
@@ -379,7 +379,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_stop_session(self):
         """Test stopping the session process."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -399,7 +399,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_stop_session_timeout_force_kill(self):
         """Test force kill if terminate times out."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -426,7 +426,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_split_buffer(self):
         """Test handling of JSON split across chunks."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -455,7 +455,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_remnant_buffer(self):
         """Test handling of buffer remnant at EOF (no newline at end)."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -482,7 +482,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_non_v1_url(self):
         """Test start_task with a non-v1 URL."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         # URL not ending in /v1
         session = CLISession("/tmp", "http://localhost:8082")
@@ -507,7 +507,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_allowed_dirs(self):
         """Test start_task includes allowed dirs in command."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession(
             "/tmp", "http://localhost:8082/v1", allowed_dirs=["/dir1", "/dir2"]
@@ -533,7 +533,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_plans_directory(self):
         """Test start_task includes --settings plansDirectory when plans_directory set."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession(
             "/tmp",
@@ -563,7 +563,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_json_error(self):
         """Test handling of non-JSON output from CLI."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -585,7 +585,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_stop_exception(self):
         """Test exception handling during stop."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1")
 
@@ -606,7 +606,7 @@ class TestCLISessionManager:
     @pytest.mark.asyncio
     async def test_manager_create_session(self):
         """Test creating a new session."""
-        from cli.manager import CLISessionManager
+        from core.cli.manager import CLISessionManager
 
         manager = CLISessionManager(
             workspace_path="/tmp/test",
@@ -621,7 +621,7 @@ class TestCLISessionManager:
     @pytest.mark.asyncio
     async def test_manager_reuse_session(self):
         """Test reusing an existing session."""
-        from cli.manager import CLISessionManager
+        from core.cli.manager import CLISessionManager
 
         manager = CLISessionManager(
             workspace_path="/tmp/test",
@@ -640,7 +640,7 @@ class TestCLISessionManager:
     @pytest.mark.asyncio
     async def test_manager_stats(self):
         """Test manager stats."""
-        from cli.manager import CLISessionManager
+        from core.cli.manager import CLISessionManager
 
         manager = CLISessionManager(
             workspace_path="/tmp/test",

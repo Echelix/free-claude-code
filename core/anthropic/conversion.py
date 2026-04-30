@@ -418,31 +418,23 @@ class AnthropicToOpenAIConverter:
                 "cleared_pending": False,
             }
 
+        # Drop text from mixed turns: see _convert_user_message for rationale.
         result: list[dict[str, Any]] = []
-        text_parts: list[str] = []
         cleared = False
-
-        def flush_text() -> None:
-            if text_parts:
-                result.append({"role": "user", "content": "\n".join(text_parts)})
-                text_parts.clear()
 
         for block in content:
             block_type = get_block_type(block)
-            if block_type == "text":
-                text_parts.append(get_block_attr(block, "text", ""))
-            elif block_type == "image":
+            if block_type == "image":
                 raise OpenAIConversionError(
                     "User message image blocks are not supported for OpenAI chat "
                     "conversion; use a vision-capable native Anthropic provider or "
                     "extend the converter."
                 )
             elif block_type == "tool_result":
-                flush_text()
-                tool_content = get_block_attr(block, "content", "")
-                serialized = _serialize_tool_result_content(tool_content)
                 tuid = get_block_attr(block, "tool_use_id")
                 tuid_s = str(tuid) if tuid is not None else ""
+                tool_content = get_block_attr(block, "content", "")
+                serialized = _serialize_tool_result_content(tool_content)
                 result.append(
                     {
                         "role": "tool",
@@ -460,21 +452,13 @@ class AnthropicToOpenAIConverter:
                     )
                     pending.deferred_emitted = True
                     cleared = True
-            else:
-                pass
 
-        flush_text()
         return {"messages": result, "cleared_pending": cleared}
 
     @staticmethod
     def _convert_user_message(content: list[Any]) -> list[dict[str, Any]]:
-        result: list[dict[str, Any]] = []
         text_parts: list[str] = []
-
-        def flush_text() -> None:
-            if text_parts:
-                result.append({"role": "user", "content": "\n".join(text_parts)})
-                text_parts.clear()
+        tool_messages: list[dict[str, Any]] = []
 
         for block in content:
             block_type = get_block_type(block)
@@ -488,10 +472,9 @@ class AnthropicToOpenAIConverter:
                     "extend the converter."
                 )
             elif block_type == "tool_result":
-                flush_text()
                 tool_content = get_block_attr(block, "content", "")
                 serialized = _serialize_tool_result_content(tool_content)
-                result.append(
+                tool_messages.append(
                     {
                         "role": "tool",
                         "tool_call_id": get_block_attr(block, "tool_use_id"),
@@ -499,8 +482,18 @@ class AnthropicToOpenAIConverter:
                     }
                 )
 
-        flush_text()
-        return result
+        # When this turn contains tool_results, emit only the tool messages.
+        # OpenAI chat format forbids inserting a user message between an
+        # assistant's tool_calls and the corresponding tool results (both
+        # "user→tool" and "tool→user" are rejected by strict providers like NIM).
+        # Text in a mixed turn (e.g. "Your tool call was malformed") is already
+        # encoded in the tool result content, so dropping it loses no information.
+        if tool_messages:
+            return tool_messages
+
+        if text_parts:
+            return [{"role": "user", "content": "\n".join(text_parts)}]
+        return []
 
     @staticmethod
     def convert_tools(tools: list[Any]) -> list[dict[str, Any]]:

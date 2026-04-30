@@ -51,3 +51,8 @@
 ## TOOLS
 
 - Prefer built-in tools (grep, read_file, etc.) over manual workflows. Check tool availability before use.
+
+## Bot Policy
+
+Bots (Discord/Telegram) are `DISABLED` by default and should remain disabled.
+`MESSAGING_PLATFORM` must remain set to "none" unless explicitly needed.

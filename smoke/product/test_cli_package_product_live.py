@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cli.manager import CLISessionManager
-from cli.session import CLISession
+from core.cli.manager import CLISessionManager
+from core.cli.session import CLISession
 from smoke.lib.child_process import cmd_fcc_init
 from smoke.lib.config import SmokeConfig
 

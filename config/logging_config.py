@@ -1,6 +1,9 @@
 """Loguru-based structured logging configuration.
 
-All logs are written to server.log as JSON lines for full traceability.
+Logs are written to two separate files:
+- server.log: Clean debugging log (truncated on startup)
+- audit.log: Persistent audit trail (rotated, compressed, retained for 30 days)
+
 Stdlib logging is intercepted and funneled to loguru.
 Context vars (request_id, node_id, chat_id) from contextualize() are
 included at top level for easy grep/filter.
@@ -75,7 +78,11 @@ class InterceptHandler(logging.Handler):
 
 
 def configure_logging(
-    log_file: str, *, force: bool = False, verbose_third_party: bool = False
+    log_file: str,
+    *,
+    force: bool = False,
+    verbose_third_party: bool = False,
+    truncate_on_start: bool = True,
 ) -> None:
     """Configure loguru with JSON output to log_file and intercept stdlib logging.
 
@@ -84,6 +91,9 @@ def configure_logging(
 
     When ``verbose_third_party`` is false, noisy HTTP and Telegram loggers are capped
     at WARNING unless explicitly configured otherwise.
+
+    When ``truncate_on_start`` is True (default for clean debugging), the log file
+    is truncated on fresh start. Set to False for persistent audit trails.
     """
     global _configured
     if _configured and not force:
@@ -93,10 +103,13 @@ def configure_logging(
     # Remove default loguru handler (writes to stderr)
     logger.remove()
 
-    # Truncate log file on fresh start for clean debugging
-    Path(log_file).write_text("")
+    # Truncate log file on fresh start for clean debugging (default behavior)
+    # Set truncate_on_start=False to preserve logs for audit trail
+    if truncate_on_start:
+        Path(log_file).write_text("")
 
     # Add file sink: JSON lines, DEBUG level, context vars at top level
+    # Configure rotation with retention for long-term logging
     logger.add(
         log_file,
         level="DEBUG",
@@ -104,6 +117,8 @@ def configure_logging(
         encoding="utf-8",
         mode="a",
         rotation="50 MB",
+        retention="30 days",  # Keep 30 days of logs
+        compression="zip",    # Compress rotated logs
     )
 
     # Intercept stdlib logging: route all root logger output to loguru
