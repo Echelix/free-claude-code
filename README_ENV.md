@@ -130,6 +130,38 @@ flowchart TD
 | `LLAMACPP_BASE_URL` | `http://localhost:8080/v1` | llama.cpp |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama |
 
+### Rate Limiting
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `PROVIDER_RATE_LIMIT` | Max requests allowed per rate window | `40` |
+| `PROVIDER_RATE_WINDOW` | Rate window duration in seconds | `60` |
+| `PROVIDER_MAX_CONCURRENCY` | Max simultaneous in-flight requests to the provider | `5` |
+
+### HTTP Timeouts (seconds)
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `HTTP_READ_TIMEOUT` | Time to wait for a response chunk from the provider | `120` |
+| `HTTP_WRITE_TIMEOUT` | Time to wait when writing the upstream request | `10` |
+| `HTTP_CONNECT_TIMEOUT` | Time to wait for a TCP connection to the provider | `2` |
+
+### Logging
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `TRUNCATE_LOG_ON_START` | Clear `server.log` each time the proxy starts | `true` |
+| `LOG_API_ERROR_TRACEBACKS` | Include full tracebacks in API error log entries | `false` |
+| `LOG_RAW_API_PAYLOADS` | Log full request/response bodies (may contain sensitive data) | `false` |
+| `LOG_RAW_SSE_EVENTS` | Log every SSE event from the provider stream | `false` |
+
+### Messaging (disabled by default)
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `MESSAGING_PLATFORM` | Bot platform: `"telegram"`, `"discord"`, or `"none"` | `"none"` |
+| `MESSAGING_RATE_LIMIT` | Max outbound messages per rate window | `1` |
+
 ---
 
 ## Choosing Models
@@ -183,24 +215,30 @@ MODEL="nvidia_nim/z-ai/glm5"
 
 ### Proxy Authentication
 
-Set `ANTHROPIC_AUTH_TOKEN` to require clients to authenticate:
+`ANTHROPIC_AUTH_TOKEN` is **required**. The proxy listens on `0.0.0.0:8082` by default, so without a token any process on your machine — or your local network — can reach it, impersonate a client, and consume your upstream API quota.
+
+Generate a secure token and set it in `.env`:
+
+```bash
+openssl rand -base64 32
+```
 
 ```dotenv
-ANTHROPIC_AUTH_TOKEN="your-secret-token-here"
+ANTHROPIC_AUTH_TOKEN="paste-generated-token-here"
 ```
 
 | Configuration | Behavior |
 | ------------- | -------- |
-| Empty or missing | No authentication required |
-| Set to any value | Clients must provide matching token |
+| Empty or missing | **No authentication — proxy is open to anyone who can reach the port** |
+| Set to any value | All clients must provide a matching `Authorization: Bearer <token>` header |
 
 **Example usage:**
 
 ```bash
-# With authentication
-ANTHROPIC_AUTH_TOKEN="freecc" ANTHROPIC_BASE_URL="http://localhost:8082" claude
+# claudex reads ANTHROPIC_AUTH_TOKEN from .env automatically
+claudex
 
-# claude-pick automatically uses the token from .env
+# claude-pick also reads it from .env automatically
 claude-pick
 ```
 

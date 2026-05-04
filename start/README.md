@@ -3,7 +3,7 @@
 > Daily-use workflow with fixed model configuration for NVIDIA NIM and OpenAI-compatible APIs.
 
 ![Python 3.14](https://img.shields.io/badge/python-3.14-blue?style=for-the-badge)
-![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)
+<!-- ![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge) -->
 
 ---
 
@@ -72,12 +72,14 @@ uv sync
 
 Edit `.env` with your API keys. See [README_ENV.md](../README_ENV.md) for detailed configuration options.
 
-```bash
-# Minimum required configuration
+```dotenv
+# Generate a secure token first: openssl rand -base64 32
+ANTHROPIC_AUTH_TOKEN="your-secure-token-here"   # required — see Security note below
 NVIDIA_NIM_API_KEY="nvapi-your-key-here"
 MODEL_SONNET="nvidia_nim/qwen/qwen3.5-397b-a17b"
-ANTHROPIC_AUTH_TOKEN="freecc"
 ```
+
+> **Security:** `ANTHROPIC_AUTH_TOKEN` is required. Without it, any process on your machine can reach the proxy and consume your API quota. Generate a token with `openssl rand -base64 32` and paste it as the value.
 
 ### 4. Set up shell aliases
 
@@ -204,17 +206,72 @@ free-claude-code/
 
 ### Environment Variables
 
+See [README_ENV.md](../README_ENV.md) for the complete reference. All variables present in `.env.nvidia.example`:
+
+#### Security
+
 | Variable | Description | Required | Default |
 | -------- | ----------- | -------- | ------- |
-| `NVIDIA_NIM_API_KEY` | NVIDIA NIM API key | For NIM provider | `""` |
-| `OPENROUTER_API_KEY` | OpenRouter API key | For OpenRouter | `""` |
-| `MODEL_SONNET` | Model for Sonnet tier | Yes | `"nvidia_nim/z-ai/glm4.7"` |
-| `MODEL_OPUS` | Model for Opus tier | No | `""` |
-| `MODEL_HAIKU` | Model for Haiku tier | No | `""` |
-| `ANTHROPIC_AUTH_TOKEN` | Proxy authentication token | Optional | `""` |
-| `ENABLE_SONNET_THINKING` | Enable thinking token parsing | No | `true` |
+| `ANTHROPIC_AUTH_TOKEN` | Proxy auth token — prevents unauthorized local access to the proxy | **Required** | `""` |
 
-See [README_ENV.md](../README_ENV.md) for complete configuration reference.
+> **Security note:** Always set `ANTHROPIC_AUTH_TOKEN`. The proxy listens on `0.0.0.0` so any process on your machine (or network) can reach it without this token. Generate a secure value with `openssl rand -base64 32`.
+
+#### Provider API Keys
+
+| Variable | Description | Required For |
+| -------- | ----------- | ------------ |
+| `NVIDIA_NIM_API_KEY` | NVIDIA NIM API key | `nvidia_nim/*` models |
+| `OPENROUTER_API_KEY` | OpenRouter API key | `open_router/*` models |
+
+#### Model Routing
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `MODEL` | Fallback model used when no tier-specific override is set | `"nvidia_nim/z-ai/glm4.7"` |
+| `MODEL_OPUS` | Model for Opus-tier requests | inherits `MODEL` |
+| `MODEL_SONNET` | Model for Sonnet-tier requests | inherits `MODEL` |
+| `MODEL_HAIKU` | Model for Haiku-tier requests | inherits `MODEL` |
+| `ENABLE_MODEL_THINKING` | Enable thinking token parsing globally | `true` |
+| `ENABLE_OPUS_THINKING` | Override thinking for Opus tier | inherits `ENABLE_MODEL_THINKING` |
+| `ENABLE_SONNET_THINKING` | Override thinking for Sonnet tier | inherits `ENABLE_MODEL_THINKING` |
+| `ENABLE_HAIKU_THINKING` | Override thinking for Haiku tier | inherits `ENABLE_MODEL_THINKING` |
+
+#### Local Provider URLs
+
+| Variable | Default | Provider |
+| -------- | ------- | -------- |
+| `LM_STUDIO_BASE_URL` | `http://localhost:1234/v1` | LM Studio |
+| `LLAMACPP_BASE_URL` | `http://localhost:8080/v1` | llama.cpp |
+
+#### Rate Limiting
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `PROVIDER_RATE_LIMIT` | Max requests allowed per rate window | `40` |
+| `PROVIDER_RATE_WINDOW` | Rate window duration in seconds | `60` |
+| `PROVIDER_MAX_CONCURRENCY` | Max simultaneous in-flight requests to the provider | `5` |
+
+#### HTTP Timeouts (seconds)
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `HTTP_READ_TIMEOUT` | Time to wait for a response chunk from the provider | `120` |
+| `HTTP_WRITE_TIMEOUT` | Time to wait when writing the upstream request | `10` |
+| `HTTP_CONNECT_TIMEOUT` | Time to wait for a TCP connection to the provider | `2` |
+
+#### Logging
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `LOG_API_ERROR_TRACEBACKS` | Include full tracebacks in error log entries | `false` |
+| `TRUNCATE_LOG_ON_START` | Clear `server.log` each time the proxy starts | `true` |
+
+#### Messaging (disabled by default)
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `MESSAGING_PLATFORM` | Bot platform: `"telegram"`, `"discord"`, or `"none"` | `"none"` |
+| `MESSAGING_RATE_LIMIT` | Max outbound messages per rate window | `1` |
 
 ---
 
@@ -297,4 +354,4 @@ This project uses [Ruff](https://docs.astral.sh/ruff/) for linting and formattin
 
 ## License
 
-MIT License — see [LICENSE](../LICENSE) for details.
+Proprietary - Echelix
