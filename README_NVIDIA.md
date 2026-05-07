@@ -21,6 +21,8 @@ This guide covers NVIDIA NIM environment configuration for the Free Claude Code 
 
 ## Quick Start
 
+The recommended workflow uses `fcc-start` (background proxy) and `claudex` (Claude Code launcher) from the [`start/` workflow](start/README.md). The proxy reads its configuration from `.env`; `start/run.sh` and `start/run.ps1` read the auth token from `.env` so there is a single source of truth.
+
 ### Step 1: Create environment file
 
 ```bash
@@ -28,23 +30,44 @@ This guide covers NVIDIA NIM environment configuration for the Free Claude Code 
 cp .env.nvidia.example .env
 ```
 
-### Step 2: Generate auth token
+### Step 2: Generate the auth token
 
 ```bash
 openssl rand -base64 32
 ```
 
-Paste the output as the value of `ANTHROPIC_AUTH_TOKEN` in `.env`.
+Paste the output as the value of `ANTHROPIC_AUTH_TOKEN` in `.env`. **Do not** hardcode the token anywhere else — `start/run.sh` and `start/run.ps1` read it from `.env` at launch.
 
 ### Step 3: Configure your provider
 
-Edit `.env` with your API keys and model choices. See [Choosing Models](#choosing-models) for recommendations.
+Edit `.env` with your `NVIDIA_NIM_API_KEY` and any model overrides. See [Choosing Models](#choosing-models) for recommendations.
 
-### Step 4: Start the server
+### Step 4: Set up shell aliases
+
+Follow [`start/README.md`](start/README.md) to add the `fcc-start`, `fcc-stop`, `fcc-status`, and `claudex` aliases to your shell profile (zsh / bash / PowerShell).
+
+### Step 5: Start the proxy
 
 ```bash
-uv run uvicorn server:app --host 0.0.0.0 --port 8082
+fcc-start          # background, returns immediately
+fcc-status         # confirm it's running
 ```
+
+The proxy listens on `http://localhost:8082` and validates configured models against the NIM catalog at startup — it will refuse to start if any `MODEL_*` references a model that NIM does not currently expose.
+
+### Step 6: Launch Claude Code
+
+```bash
+claudex            # reads .env, sets ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN, runs claude
+```
+
+To stop the background proxy:
+
+```bash
+fcc-stop
+```
+
+> **Why not `uv run uvicorn server:app …`?** That works, but you'd need to forward `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` to every Claude invocation manually. `fcc-start` + `claudex` does that for you and survives across multiple Claude sessions.
 
 ---
 
@@ -220,13 +243,27 @@ MODEL="nvidia_nim/z-ai/glm5"
 
 `ANTHROPIC_AUTH_TOKEN` is **required**. The proxy listens on `0.0.0.0:8082` by default, so without a token any process on your machine — or your local network — can reach it, impersonate a client, and consume your upstream API quota.
 
-Generate a secure token and set it in `.env`:
+### Single source of truth
+
+The token lives in `.env` only. Every consumer reads it from there:
+
+| Consumer | How it reads the token |
+| -------- | ---------------------- |
+| The proxy server (`fcc-start` / `uvicorn server:app`) | Loaded by Pydantic settings from `.env` |
+| `claudex` | Reads `.env` and exports `ANTHROPIC_AUTH_TOKEN` before launching `claude` |
+| `claude-pick` | Reads `.env` and exports the token (also supports `freecc:provider/model` suffix syntax) |
+| `start/run.sh` / `start/run.ps1` | Sources `.env` and exports `ANTHROPIC_AUTH_TOKEN` before launching `claude` |
+
+> **Do not** copy the token literal into `start/run.sh`, `start/run.ps1`, shell aliases, or any tracked file. The shipped scripts read from `.env` precisely so the token never lands in git history.
+
+### Generate
 
 ```bash
 openssl rand -base64 32
 ```
 
 ```dotenv
+# .env
 ANTHROPIC_AUTH_TOKEN="paste-generated-token-here"
 ```
 
@@ -235,14 +272,18 @@ ANTHROPIC_AUTH_TOKEN="paste-generated-token-here"
 | Empty or missing | **No authentication — proxy is open to anyone who can reach the port** |
 | Set to any value | All clients must provide a matching `Authorization: Bearer <token>` header |
 
-**Example usage:**
+### Use
 
 ```bash
-# claudex reads ANTHROPIC_AUTH_TOKEN from .env automatically
+# Start the proxy in the background, then launch Claude:
+fcc-start
 claudex
 
-# claude-pick also reads it from .env automatically
+# Or use the model picker:
 claude-pick
+
+# Or run the bundled Bash launcher (delegates to claude after sourcing .env):
+./start/run.sh
 ```
 
 ---
