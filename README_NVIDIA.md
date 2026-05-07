@@ -110,7 +110,7 @@ flowchart TD
 | `MODEL` | Fallback model for unrecognized tiers | Yes | `"nvidia_nim/moonshotai/kimi-k2-thinking"` |
 | `MODEL_OPUS` | Model for Claude Opus requests | No | `"nvidia_nim/moonshotai/kimi-k2-thinking"` |
 | `MODEL_SONNET` | Model for Claude Sonnet requests | No | `"nvidia_nim/qwen/qwen3.5-397b-a17b"` |
-| `MODEL_HAIKU` | Model for Claude Haiku requests | No | `"nvidia_nim/moonshotai/kimi-k2.5"` |
+| `MODEL_HAIKU` | Model for Claude Haiku requests | No | `"nvidia_nim/moonshotai/kimi-k2-instruct"` |
 | `ENABLE_MODEL_THINKING` | Enable thinking token parsing | No | `true` |
 | `ENABLE_SONNET_THINKING` | Override thinking for Sonnet tier | No | `false` |
 | `ENABLE_OPUS_THINKING` | Override thinking for Opus tier | No | inherits |
@@ -186,7 +186,8 @@ Claude Code sends requests using three model tiers. The proxy maps each tier to 
 | Qwen 3.5 397B | `nvidia_nim/qwen/qwen3.5-397b-a17b` | Best for Sonnet — large MoE, strong tool calling |
 | Qwen 3.5 122B | `nvidia_nim/qwen/qwen3.5-122b-a10b` | Lighter alternative if rate limits are a concern |
 | Kimi K2 Thinking | `nvidia_nim/moonshotai/kimi-k2-thinking` | Good for Opus — reasoning model |
-| Kimi K2.5 | `nvidia_nim/moonshotai/kimi-k2.5` | Solid all-rounder for Sonnet or Opus |
+| Kimi K2 Instruct | `nvidia_nim/moonshotai/kimi-k2-instruct` | Recommended for Haiku — non-thinking, fast |
+| Kimi K2.6 | `nvidia_nim/moonshotai/kimi-k2.6` | Newer all-rounder; viable for Sonnet or Opus |
 | GLM5 | `nvidia_nim/z-ai/glm5` | Lightweight fallback for Haiku |
 
 > **Avoid `mistralai/devstral-2-123b-instruct-2512` for the Sonnet slot.** Devstral produces malformed tool call JSON, causing "The model's tool call could not be parsed" errors.
