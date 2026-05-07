@@ -695,6 +695,16 @@ uv run ruff format && uv run ruff check && uv run ty check && uv run pytest
 
 ---
 
+## Documentation
+
+| Document | Purpose |
+| -------- | ------- |
+| [README_NVIDIA.md](README_NVIDIA.md) | NVIDIA NIM environment setup, model defaults, and tuning |
+| [start/README.md](start/README.md) | Production workflow with `fcc-start` / `claudex` background server |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security audit: data egress, auth, logging, and recommended hardening |
+
+---
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.

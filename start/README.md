@@ -70,7 +70,7 @@ uv sync
 
 ### 3. Configure environment
 
-Edit `.env` with your API keys. See [README_ENV.md](../README_ENV.md) for detailed configuration options.
+Edit `.env` with your API keys. See [README_NVIDIA.md](../README_NVIDIA.md) for detailed configuration options.
 
 ```dotenv
 # Generate a secure token first: openssl rand -base64 32
@@ -206,7 +206,7 @@ free-claude-code/
 
 ### Environment Variables
 
-See [README_ENV.md](../README_ENV.md) for the complete reference. All variables present in `.env.nvidia.example`:
+See [README_NVIDIA.md](../README_NVIDIA.md) for the complete reference. All variables present in `.env.nvidia.example`:
 
 #### Security
 
@@ -227,7 +227,7 @@ See [README_ENV.md](../README_ENV.md) for the complete reference. All variables 
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `MODEL` | Fallback model used when no tier-specific override is set | `"nvidia_nim/z-ai/glm4.7"` |
+| `MODEL` | Fallback model used when no tier-specific override is set | `"nvidia_nim/moonshotai/kimi-k2-thinking"` |
 | `MODEL_OPUS` | Model for Opus-tier requests | inherits `MODEL` |
 | `MODEL_SONNET` | Model for Sonnet-tier requests | inherits `MODEL` |
 | `MODEL_HAIKU` | Model for Haiku-tier requests | inherits `MODEL` |

@@ -95,7 +95,7 @@ def _running_pid() -> int | None:
         pid = int(pid_file.read_text().strip())
         os.kill(pid, 0)  # signal 0 = existence check only
         return pid
-    except (ValueError, ProcessLookupError, PermissionError):
+    except ValueError, ProcessLookupError, PermissionError:
         pid_file.unlink(missing_ok=True)
         return None
 
@@ -126,7 +126,9 @@ def fcc_start() -> None:
         stderr=subprocess.DEVNULL,
     )
     if sys.platform == "win32":
-        kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        kwargs["creationflags"] = (
+            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        )
     else:
         kwargs["start_new_session"] = True  # detach from terminal session
 

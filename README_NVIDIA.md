@@ -1,6 +1,6 @@
-# Environment Setup Guide
+# NVIDIA NIM Setup Guide
 
-> Configure your Free Claude Code proxy for local development and production use.
+> Configure your Free Claude Code proxy against NVIDIA NIM. For OpenRouter, DeepSeek, LM Studio, llama.cpp, and Ollama, see the provider walk-throughs in the root [README.md](README.md).
 
 ![Python 3.14](https://img.shields.io/badge/python-3.14-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-yellow)
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This guide covers environment configuration for the Free Claude Code proxy. It explains how to set up your `.env` file, choose appropriate models for each Claude tier, and configure authentication tokens.
+This guide covers NVIDIA NIM environment configuration for the Free Claude Code proxy. It explains how to set up your `.env` file from `.env.nvidia.example`, choose appropriate NIM models for each Claude tier, and configure authentication tokens.
 
 **Key capabilities:**
 
@@ -101,16 +101,18 @@ flowchart TD
 
 ## Configuration
 
+> Defaults below reflect `.env.nvidia.example`. See the root [README.md](README.md) for non-NVIDIA provider configurations.
+
 ### Core Variables
 
 | Variable | Description | Required | Default |
 | -------- | ----------- | -------- | ------- |
-| `MODEL` | Fallback model for unrecognized tiers | Yes | `"nvidia_nim/z-ai/glm4.7"` |
-| `MODEL_OPUS` | Model for Claude Opus requests | No | `""` |
-| `MODEL_SONNET` | Model for Claude Sonnet requests | No | `""` |
-| `MODEL_HAIKU` | Model for Claude Haiku requests | No | `""` |
+| `MODEL` | Fallback model for unrecognized tiers | Yes | `"nvidia_nim/moonshotai/kimi-k2-thinking"` |
+| `MODEL_OPUS` | Model for Claude Opus requests | No | `"nvidia_nim/moonshotai/kimi-k2-thinking"` |
+| `MODEL_SONNET` | Model for Claude Sonnet requests | No | `"nvidia_nim/qwen/qwen3.5-397b-a17b"` |
+| `MODEL_HAIKU` | Model for Claude Haiku requests | No | `"nvidia_nim/moonshotai/kimi-k2.5"` |
 | `ENABLE_MODEL_THINKING` | Enable thinking token parsing | No | `true` |
-| `ENABLE_SONNET_THINKING` | Override thinking for Sonnet tier | No | inherits |
+| `ENABLE_SONNET_THINKING` | Override thinking for Sonnet tier | No | `false` |
 | `ENABLE_OPUS_THINKING` | Override thinking for Opus tier | No | inherits |
 | `ENABLE_HAIKU_THINKING` | Override thinking for Haiku tier | No | inherits |
 
@@ -142,7 +144,7 @@ flowchart TD
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `HTTP_READ_TIMEOUT` | Time to wait for a response chunk from the provider | `120` |
+| `HTTP_READ_TIMEOUT` | Time to wait for a response chunk from the provider | `180` |
 | `HTTP_WRITE_TIMEOUT` | Time to wait when writing the upstream request | `10` |
 | `HTTP_CONNECT_TIMEOUT` | Time to wait for a TCP connection to the provider | `2` |
 
@@ -151,7 +153,7 @@ flowchart TD
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
 | `TRUNCATE_LOG_ON_START` | Clear `server.log` each time the proxy starts | `true` |
-| `LOG_API_ERROR_TRACEBACKS` | Include full tracebacks in API error log entries | `false` |
+| `LOG_API_ERROR_TRACEBACKS` | Include full tracebacks in API error log entries | `true` |
 | `LOG_RAW_API_PAYLOADS` | Log full request/response bodies (may contain sensitive data) | `false` |
 | `LOG_RAW_SSE_EVENTS` | Log every SSE event from the provider stream | `false` |
 

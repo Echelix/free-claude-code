@@ -118,7 +118,7 @@ def configure_logging(
         mode="a",
         rotation="50 MB",
         retention="30 days",  # Keep 30 days of logs
-        compression="zip",    # Compress rotated logs
+        compression="zip",  # Compress rotated logs
     )
 
     # Intercept stdlib logging: route all root logger output to loguru
