@@ -702,6 +702,7 @@ uv run ruff format && uv run ruff check && uv run ty check && uv run pytest
 | [README_NVIDIA.md](README_NVIDIA.md) | NVIDIA NIM environment setup, model defaults, and tuning |
 | [start/README.md](start/README.md) | Production workflow with `fcc-start` / `claudex` background server |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security audit: data egress, auth, logging, and recommended hardening |
+| [docs/UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md) | How to pull upstream fixes/features without losing Echelix additions |
 
 ---
 
