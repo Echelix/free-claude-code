@@ -25,11 +25,13 @@ dependencies = [
 ]
 
 [project.scripts]
+fcc-server = "core.cli.entrypoints:serve"
 free-claude-code = "core.cli.entrypoints:serve"
 fcc-init = "core.cli.entrypoints:init"
 fcc-start = "core.cli.entrypoints:fcc_start"
 fcc-stop = "core.cli.entrypoints:fcc_stop"
 fcc-status = "core.cli.entrypoints:fcc_status"
+fcc-claude = "core.cli.entrypoints:launch_claude"
 claudex = "core.cli.entrypoints:claudex"
 
 [project.optional-dependencies]
