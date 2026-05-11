@@ -14,7 +14,12 @@ import uvicorn
 
 from api.admin_urls import local_proxy_root_url
 from api.app import GracefulLifespanApp, create_app
-from core.cli.process_registry import kill_all_best_effort
+from core.cli.process_registry import (
+    kill_all_best_effort,
+    kill_pid_tree_best_effort,
+    register_pid,
+    unregister_pid,
+)
 from config.settings import Settings, get_settings
 
 PROXY_PREFLIGHT_PATH = "/health"
@@ -154,7 +159,6 @@ def launch_claude(argv: Sequence[str] | None = None) -> None:
     try:
         process = subprocess.Popen(command, env=env)
         if process.pid:
-            from core.cli.process_registry import register_pid
             register_pid(process.pid)
         return_code = process.wait()
     except FileNotFoundError:
@@ -169,13 +173,11 @@ def launch_claude(argv: Sequence[str] | None = None) -> None:
         raise SystemExit(127) from None
     except KeyboardInterrupt:
         if process is not None and process.pid:
-            from core.cli.process_registry import kill_pid_tree_best_effort
             kill_pid_tree_best_effort(process.pid)
             process.wait()
         raise
     finally:
         if process is not None and process.pid:
-            from core.cli.process_registry import unregister_pid
             unregister_pid(process.pid)
 
     raise SystemExit(return_code)
