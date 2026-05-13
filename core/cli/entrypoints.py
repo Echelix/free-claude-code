@@ -15,13 +15,13 @@ import uvicorn
 
 from api.admin_urls import local_proxy_root_url
 from api.app import GracefulLifespanApp, create_app
+from config.settings import Settings, get_settings
 from core.cli.process_registry import (
     kill_all_best_effort,
     kill_pid_tree_best_effort,
     register_pid,
     unregister_pid,
 )
-from config.settings import Settings, get_settings
 
 PROXY_PREFLIGHT_PATH = "/health"
 PROXY_PREFLIGHT_TIMEOUT_SECONDS = 1.5
@@ -242,7 +242,7 @@ def _running_pid() -> int | None:
         pid = int(pid_file.read_text().strip())
         os.kill(pid, 0)  # signal 0 = existence check only
         return pid
-    except (ValueError, ProcessLookupError, PermissionError):
+    except ValueError, ProcessLookupError, PermissionError:
         pid_file.unlink(missing_ok=True)
         return None
 
@@ -264,11 +264,11 @@ def fcc_start() -> None:
     )
     root = _project_root()
 
-    kwargs: dict = dict(
-        cwd=str(root),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    kwargs: dict = {
+        "cwd": str(root),
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
     if sys.platform == "win32":
         kwargs["creationflags"] = (
             subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP

@@ -104,7 +104,7 @@ def _removed_env_var_message(model_config: Mapping[str, Any]) -> str | None:
 
 
 def deprecated_model_env_entries(
-    settings: "Settings",
+    settings: Settings,
 ) -> list[tuple[Path, str, str, str]]:
     """Return (env_file, env_key, old_ref, new_ref) for each deprecated model found in a .env file."""
     from .model_deprecations import DEPRECATED_NVIDIA_NIM_MODELS

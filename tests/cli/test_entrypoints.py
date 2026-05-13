@@ -153,7 +153,7 @@ def test_serve_supervisor_restarts_when_app_requests_restart() -> None:
 
 
 def test_serve_handles_keyboard_interrupt_without_traceback() -> None:
-    from cli import entrypoints
+    from core.cli import entrypoints
 
     settings = _launcher_settings()
     get_settings = MagicMock(return_value=settings)
@@ -246,7 +246,7 @@ def test_launch_claude_passes_args_and_child_env(
 
 
 def test_launch_claude_keyboard_interrupt_kills_child_tree() -> None:
-    from cli.entrypoints import launch_claude
+    from core.cli.entrypoints import launch_claude
 
     settings = _launcher_settings(port=9191, token="proxy-token")
 
@@ -273,7 +273,7 @@ def test_launch_claude_keyboard_interrupt_kills_child_tree() -> None:
 def test_launch_claude_exits_when_command_cannot_be_resolved(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from cli.entrypoints import launch_claude
+    from core.cli.entrypoints import launch_claude
 
     settings = _launcher_settings(claude_bin="claude-missing")
     with (
