@@ -112,9 +112,9 @@ def test_cli_scripts_are_registered() -> None:
     )
 
     scripts = pyproject["project"]["scripts"]
-    assert scripts["fcc-server"] == "cli.entrypoints:serve"
-    assert scripts["free-claude-code"] == "cli.entrypoints:serve"
-    assert scripts["fcc-claude"] == "cli.entrypoints:launch_claude"
+    assert scripts["fcc-server"] == "core.cli.entrypoints:serve"
+    assert scripts["free-claude-code"] == "core.cli.entrypoints:serve"
+    assert scripts["fcc-claude"] == "core.cli.entrypoints:launch_claude"
 
 
 def test_serve_supervisor_restarts_when_app_requests_restart() -> None:
@@ -220,12 +220,12 @@ def test_launch_claude_passes_args_and_child_env(
     settings = _launcher_settings(port=9191, token="proxy-token")
 
     with (
-        patch("cli.entrypoints.get_settings", return_value=settings),
-        patch("cli.entrypoints._preflight_proxy", return_value=None),
-        patch("cli.entrypoints.shutil.which", return_value="resolved-claude.cmd"),
-        patch("cli.entrypoints.subprocess.Popen") as popen,
-        patch("cli.entrypoints.register_pid") as register_pid,
-        patch("cli.entrypoints.unregister_pid") as unregister_pid,
+        patch("core.cli.entrypoints.get_settings", return_value=settings),
+        patch("core.cli.entrypoints._preflight_proxy", return_value=None),
+        patch("core.cli.entrypoints.shutil.which", return_value="resolved-claude.cmd"),
+        patch("core.cli.entrypoints.subprocess.Popen") as popen,
+        patch("core.cli.entrypoints.register_pid") as register_pid,
+        patch("core.cli.entrypoints.unregister_pid") as unregister_pid,
         pytest.raises(SystemExit) as exc_info,
     ):
         process = popen.return_value
@@ -251,13 +251,13 @@ def test_launch_claude_keyboard_interrupt_kills_child_tree() -> None:
     settings = _launcher_settings(port=9191, token="proxy-token")
 
     with (
-        patch("cli.entrypoints.get_settings", return_value=settings),
-        patch("cli.entrypoints._preflight_proxy", return_value=None),
-        patch("cli.entrypoints.shutil.which", return_value="resolved-claude.cmd"),
-        patch("cli.entrypoints.subprocess.Popen") as popen,
-        patch("cli.entrypoints.register_pid"),
-        patch("cli.entrypoints.kill_pid_tree_best_effort") as kill_tree,
-        patch("cli.entrypoints.unregister_pid") as unregister_pid,
+        patch("core.cli.entrypoints.get_settings", return_value=settings),
+        patch("core.cli.entrypoints._preflight_proxy", return_value=None),
+        patch("core.cli.entrypoints.shutil.which", return_value="resolved-claude.cmd"),
+        patch("core.cli.entrypoints.subprocess.Popen") as popen,
+        patch("core.cli.entrypoints.register_pid"),
+        patch("core.cli.entrypoints.kill_pid_tree_best_effort") as kill_tree,
+        patch("core.cli.entrypoints.unregister_pid") as unregister_pid,
         pytest.raises(KeyboardInterrupt),
     ):
         process = popen.return_value
@@ -277,10 +277,10 @@ def test_launch_claude_exits_when_command_cannot_be_resolved(
 
     settings = _launcher_settings(claude_bin="claude-missing")
     with (
-        patch("cli.entrypoints.get_settings", return_value=settings),
-        patch("cli.entrypoints._preflight_proxy", return_value=None),
-        patch("cli.entrypoints.shutil.which", return_value=None),
-        patch("cli.entrypoints.subprocess.Popen") as popen,
+        patch("core.cli.entrypoints.get_settings", return_value=settings),
+        patch("core.cli.entrypoints._preflight_proxy", return_value=None),
+        patch("core.cli.entrypoints.shutil.which", return_value=None),
+        patch("core.cli.entrypoints.subprocess.Popen") as popen,
         pytest.raises(SystemExit) as exc_info,
     ):
         launch_claude([])
@@ -299,9 +299,11 @@ def test_launch_claude_unreachable_proxy_exits_with_hint(
 
     settings = _launcher_settings(port=9393)
     with (
-        patch("cli.entrypoints.get_settings", return_value=settings),
-        patch("cli.entrypoints._preflight_proxy", return_value="connection refused"),
-        patch("cli.entrypoints.subprocess.run") as run,
+        patch("core.cli.entrypoints.get_settings", return_value=settings),
+        patch(
+            "core.cli.entrypoints._preflight_proxy", return_value="connection refused"
+        ),
+        patch("core.cli.entrypoints.subprocess.run") as run,
         pytest.raises(SystemExit) as exc_info,
     ):
         launch_claude([])

@@ -51,7 +51,7 @@ def test_root_env_example_is_packaged_for_fcc_init() -> None:
         "force-include"
     ]
 
-    assert force_include[".env.example"] == "cli/env.example"
+    assert force_include[".env.example"] == "core/cli/env.example"
 
 
 def test_pyproject_first_party_packages_match_packaged_roots() -> None:
