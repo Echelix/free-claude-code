@@ -315,7 +315,46 @@ These categories are safe to skip and rarely worth the merge friction:
 
 ## Reference: prior sync example
 
-The 2026-05 sync pulled 14 upstream commits cleanly:
+### 2026-05 second sync (2026-05-13) — 17 upstream commits
+
+```
+6b7ba35 feat: add Wafer provider
+d63605e Add NVIDIA NIM CLI smoke matrix and tool schema aliasing
+7491b04 Add Claude CLI smoke matrices
+3be97e4 Initial admin impl
+35ac54f log urls at startup
+6175f29 Improve admin UI setup flow
+bdb29a5 Allow unauthenticated root probes
+044677a feat(logging): structured TRACE events and end-to-end request correlation
+5e11d1d feat(providers): retry upstream HTTP 503 like 429
+504c661 feat(providers): retry all upstream 5xx like 429
+4ce400e fix(openai): close async client with supported method
+8ff1bc7 fix(cli): terminate launched process trees
+bafccc7 fix(cli): exit fcc-server cleanly on interrupt
+acbf101 fix(cli): resolve claude command before launch
+545fa35 fix: handle disallowed special tokens in tiktoken encoder (#382)
+87b04d4 feat(opencode): integrate OpenCode Zen provider and API key support (#426)
+1599fd3 feat(providers): add Z.ai Coding Plan provider (#440)
+```
+
+Skipped: all README-only commits, `07b30aa` (dep bump), `3bde98a` (timeout defaults),
+`5669fb2`/`05909e9` (merge commits), `6b8c697` (readme), `5706d00` (readme).
+
+Conflict patterns hit: A (README ×6), C (`core/cli/` path ×4 — entrypoints, manager,
+session; `api/admin_config.py` package ref).
+
+Additional Echelix fixups committed after cherry-picks:
+- All new upstream test files used `cli.*` / `cli.session.*` / `cli.entrypoints.*` patch
+  targets — updated to `core.cli.*` throughout.
+- `api/admin_config.py:_template_text()` referenced `importlib.resources.files("cli")` —
+  changed to `"core.cli"`.
+- Architecture contract test `expected` set had `"cli"` — removed (not a package root).
+
+Result: 5 failures (all pre-existing on main); +130 new passing tests.
+
+---
+
+### 2026-05 first sync — 14 upstream commits
 
 ```
 9367b40 fix: accept betas body field (#360)
