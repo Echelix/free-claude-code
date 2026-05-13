@@ -130,10 +130,10 @@ flowchart TD
 
 | Variable | Description | Required | Default |
 | -------- | ----------- | -------- | ------- |
-| `MODEL` | Fallback model for unrecognized tiers | Yes | `"nvidia_nim/moonshotai/kimi-k2-thinking"` |
-| `MODEL_OPUS` | Model for Claude Opus requests | No | `"nvidia_nim/moonshotai/kimi-k2-thinking"` |
+| `MODEL` | Fallback model for unrecognized tiers | Yes | `"nvidia_nim/qwen/qwen3-next-80b-a3b-thinking"` |
+| `MODEL_OPUS` | Model for Claude Opus requests | No | `"nvidia_nim/qwen/qwen3-next-80b-a3b-thinking"` |
 | `MODEL_SONNET` | Model for Claude Sonnet requests | No | `"nvidia_nim/qwen/qwen3.5-397b-a17b"` |
-| `MODEL_HAIKU` | Model for Claude Haiku requests | No | `"nvidia_nim/moonshotai/kimi-k2-instruct"` |
+| `MODEL_HAIKU` | Model for Claude Haiku requests | No | `"nvidia_nim/qwen/qwen3.5-122b-a10b"` |
 | `ENABLE_MODEL_THINKING` | Enable thinking token parsing | No | `true` |
 | `ENABLE_SONNET_THINKING` | Override thinking for Sonnet tier | No | `false` |
 | `ENABLE_OPUS_THINKING` | Override thinking for Opus tier | No | inherits |
@@ -208,9 +208,8 @@ Claude Code sends requests using three model tiers. The proxy maps each tier to 
 | ----- | ------------ | ----- |
 | Qwen 3.5 397B | `nvidia_nim/qwen/qwen3.5-397b-a17b` | Best for Sonnet — large MoE, strong tool calling |
 | Qwen 3.5 122B | `nvidia_nim/qwen/qwen3.5-122b-a10b` | Lighter alternative if rate limits are a concern |
-| Kimi K2 Thinking | `nvidia_nim/moonshotai/kimi-k2-thinking` | Good for Opus — reasoning model |
-| Kimi K2 Instruct | `nvidia_nim/moonshotai/kimi-k2-instruct` | Recommended for Haiku — non-thinking, fast |
-| Kimi K2.6 | `nvidia_nim/moonshotai/kimi-k2.6` | Newer all-rounder; viable for Sonnet or Opus |
+| Qwen3 Next 80B Thinking | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` | Best for Opus — reasoning model |
+| Qwen 3.5 122B | `nvidia_nim/qwen/qwen3.5-122b-a10b` | Recommended for Haiku — non-thinking, fast |
 | GLM5 | `nvidia_nim/z-ai/glm5` | Lightweight fallback for Haiku |
 
 > **Avoid `mistralai/devstral-2-123b-instruct-2512` for the Sonnet slot.** Devstral produces malformed tool call JSON, causing "The model's tool call could not be parsed" errors.
@@ -223,7 +222,7 @@ MODEL_SONNET="nvidia_nim/qwen/qwen3.5-397b-a17b"
 ENABLE_SONNET_THINKING=false
 
 # Opus slot — reasoning-heavy tasks
-MODEL_OPUS="nvidia_nim/moonshotai/kimi-k2-thinking"
+MODEL_OPUS="nvidia_nim/qwen/qwen3-next-80b-a3b-thinking"
 ENABLE_OPUS_THINKING=true
 
 # Haiku slot — simple queries

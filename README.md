@@ -2,7 +2,7 @@
 
 # 🤖 Free Claude Code
 
-### Use Claude Code CLI & VSCode for free. No Anthropic API key required.
+## Use Claude Code CLI & VSCode for free. No Anthropic API key required
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Python 3.14](https://img.shields.io/badge/python-3.14-3776ab.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
@@ -192,7 +192,7 @@ Each `MODEL_*` variable can use a different provider. `MODEL` is the fallback fo
 NVIDIA_NIM_API_KEY="nvapi-your-key-here"
 OPENROUTER_API_KEY="sk-or-your-key-here"
 
-MODEL_OPUS="nvidia_nim/moonshotai/kimi-k2-thinking"
+MODEL_OPUS="nvidia_nim/qwen/qwen3-next-80b-a3b-thinking"
 MODEL_SONNET="open_router/deepseek/deepseek-r1-0528:free"
 MODEL_HAIKU="lmstudio/unsloth/GLM-4.7-Flash-GGUF"
 MODEL="nvidia_nim/z-ai/glm4.7"                      # fallback
@@ -217,6 +217,7 @@ ANTHROPIC_AUTH_TOKEN="your-secret-token-here"
 - The `claude-pick` script automatically reads the token from `.env` if configured
 
 **Example usage:**
+
 ```bash
 # With authentication
 ANTHROPIC_AUTH_TOKEN="your-secret-token-here" \
@@ -227,6 +228,7 @@ claude-pick
 ```
 
 Use this feature if:
+
 - Running the proxy on a public network
 - Sharing the server with others but restricting access
 - Wanting an additional layer of security
@@ -246,10 +248,13 @@ uv run uvicorn server:app --host 0.0.0.0 --port 8082
 Point `ANTHROPIC_BASE_URL` at the proxy root URL, not `http://localhost:8082/v1`.
 
 #### Powershell
+
 ```powershell
 $env:ANTHROPIC_AUTH_TOKEN="freecc"; $env:ANTHROPIC_BASE_URL="http://localhost:8082"; claude
 ```
+
 #### Bash
+
 ```bash
 ANTHROPIC_AUTH_TOKEN="freecc" ANTHROPIC_BASE_URL="http://localhost:8082" claude
 ```
@@ -326,7 +331,7 @@ Then reload your shell (`source ~/.zshrc` or `source ~/.bashrc`) and run `claude
 **Or use a fixed model alias** (no picker needed):
 
 ```bash
-alias claude-kimi='ANTHROPIC_BASE_URL="http://localhost:8082" ANTHROPIC_AUTH_TOKEN="freecc:moonshotai/kimi-k2-thinking" claude'
+alias claude-qwen='ANTHROPIC_BASE_URL="http://localhost:8082" ANTHROPIC_AUTH_TOKEN="freecc:qwen/qwen3-next-80b-a3b-thinking" claude'
 ```
 
 </details>
@@ -350,7 +355,7 @@ free-claude-code    # starts the server
 
 ## How It Works
 
-```
+```text
 ┌─────────────────┐        ┌──────────────────────┐        ┌──────────────────┐
 │  Claude Code    │───────>│  Free Claude Code    │───────>│  LLM Provider    │
 │  CLI / VSCode   │<───────│  Proxy (:8082)       │<───────│  NIM / OR / LMS  │
@@ -399,7 +404,7 @@ Popular models (full list in [`nvidia_nim_models.json`](nvidia_nim_models.json))
 - `nvidia_nim/minimaxai/minimax-m2.5`
 - `nvidia_nim/qwen/qwen3.5-397b-a17b`
 - `nvidia_nim/z-ai/glm5`
-- `nvidia_nim/moonshotai/kimi-k2-thinking`
+- `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking`
 - `nvidia_nim/stepfun-ai/step-3.5-flash`
 
 Browse: [build.nvidia.com](https://build.nvidia.com/explore/discover) · Update list: `curl "https://integrate.api.nvidia.com/v1/models" > nvidia_nim_models.json`

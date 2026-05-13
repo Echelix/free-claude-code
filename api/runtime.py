@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import FastAPI
 from loguru import logger
 
-from config.settings import Settings, get_settings
+from config.settings import Settings, deprecated_model_env_entries, get_settings
 from providers.exceptions import ServiceUnavailableError
 from providers.registry import ProviderRegistry
 
@@ -49,6 +49,44 @@ async def best_effort(
                 name,
                 type(e).__name__,
             )
+
+
+def heal_deprecated_models(settings: Settings) -> bool:
+    """Rewrite deprecated model values in .env files; return True if any were changed."""
+    from dotenv import set_key
+
+    from config.model_deprecations import DEPRECATED_NVIDIA_NIM_MODELS
+
+    entries = deprecated_model_env_entries(settings)
+    healed_keys: set[str] = set()
+
+    for env_file, env_key, old_ref, new_ref in entries:
+        set_key(str(env_file), env_key, new_ref)
+        healed_keys.add(env_key)
+        logger.warning(
+            "Deprecated model auto-replaced in {}: {}={!r} → {!r}",
+            env_file,
+            env_key,
+            old_ref,
+            new_ref,
+        )
+
+    # Warn about deprecated models set only via process environment (can't auto-heal)
+    for ref in settings.configured_chat_model_refs():
+        replacement = DEPRECATED_NVIDIA_NIM_MODELS.get(ref.model_ref)
+        if replacement is None:
+            continue
+        for env_key in ref.sources:
+            if env_key not in healed_keys:
+                logger.warning(
+                    "Deprecated model {}={!r} is set via process environment "
+                    "(not a .env file); update it manually to {!r}",
+                    env_key,
+                    ref.model_ref,
+                    replacement,
+                )
+
+    return bool(entries)
 
 
 def warn_if_process_auth_token(settings: Settings) -> None:
@@ -104,6 +142,9 @@ class AppRuntime:
         self.app.state.provider_registry = self._provider_registry
         try:
             warn_if_process_auth_token(self.settings)
+            if heal_deprecated_models(self.settings):
+                get_settings.cache_clear()
+                self.settings = get_settings()
             await self._provider_registry.validate_configured_models(self.settings)
             self._provider_registry.start_model_list_refresh(self.settings)
             await self._start_messaging_if_configured()

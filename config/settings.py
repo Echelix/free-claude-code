@@ -103,6 +103,26 @@ def _removed_env_var_message(model_config: Mapping[str, Any]) -> str | None:
     return None
 
 
+def deprecated_model_env_entries(
+    settings: "Settings",
+) -> list[tuple[Path, str, str, str]]:
+    """Return (env_file, env_key, old_ref, new_ref) for each deprecated model found in a .env file."""
+    from .model_deprecations import DEPRECATED_NVIDIA_NIM_MODELS
+
+    entries: list[tuple[Path, str, str, str]] = []
+    env_files = _env_files()
+    for ref in settings.configured_chat_model_refs():
+        replacement = DEPRECATED_NVIDIA_NIM_MODELS.get(ref.model_ref)
+        if replacement is None:
+            continue
+        for env_key in ref.sources:
+            for env_file in reversed(env_files):
+                if _env_file_value(env_file, env_key) == ref.model_ref:
+                    entries.append((env_file, env_key, ref.model_ref, replacement))
+                    break
+    return entries
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 

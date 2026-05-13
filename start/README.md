@@ -227,7 +227,7 @@ See [README_NVIDIA.md](../README_NVIDIA.md) for the complete reference. All vari
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `MODEL` | Fallback model used when no tier-specific override is set | `"nvidia_nim/moonshotai/kimi-k2-thinking"` |
+| `MODEL` | Fallback model used when no tier-specific override is set | `"nvidia_nim/qwen/qwen3-next-80b-a3b-thinking"` |
 | `MODEL_OPUS` | Model for Opus-tier requests | inherits `MODEL` |
 | `MODEL_SONNET` | Model for Sonnet-tier requests | inherits `MODEL` |
 | `MODEL_HAIKU` | Model for Haiku-tier requests | inherits `MODEL` |
