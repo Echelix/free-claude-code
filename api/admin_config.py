@@ -813,7 +813,7 @@ def configured_env_files() -> tuple[tuple[SourceType, Path], ...]:
 def _template_text() -> str:
     import importlib.resources
 
-    packaged = importlib.resources.files("cli").joinpath("env.example")
+    packaged = importlib.resources.files("core.cli").joinpath("env.example")
     if packaged.is_file():
         return packaged.read_text("utf-8")
 
