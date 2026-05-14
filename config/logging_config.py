@@ -1,6 +1,6 @@
 """Loguru-based structured logging configuration.
 
-Logs are written to two separate files:
+Logs are written to two separate files (default directory ``logs/``):
 - server.log: Clean debugging log (truncated on startup)
 - audit.log: Persistent audit trail (rotated, compressed, retained for 30 days)
 
@@ -133,10 +133,13 @@ def configure_logging(
     # Remove default loguru handler (writes to stderr)
     logger.remove()
 
+    log_path = Path(log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
     # Truncate log file on fresh start for clean debugging (default behavior)
     # Set truncate_on_start=False to preserve logs for audit trail
     if truncate_on_start:
-        Path(log_file).write_text("")
+        log_path.write_text("")
 
     # Add file sink: JSON lines, DEBUG level, context vars at top level
     # Configure rotation with retention for long-term logging

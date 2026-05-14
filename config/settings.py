@@ -326,7 +326,7 @@ class Settings(BaseSettings):
     # ==================== Server ====================
     host: str = "0.0.0.0"
     port: int = 8082
-    log_file: str = "server.log"
+    log_file: str = "logs/server.log"
     truncate_log_on_start: bool = Field(
         default=True, validation_alias="TRUNCATE_LOG_ON_START"
     )
