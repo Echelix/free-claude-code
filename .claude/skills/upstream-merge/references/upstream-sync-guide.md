@@ -200,12 +200,14 @@ git cherry-pick --skip    # if mid-cherry-pick
 ### Pattern B — Modify/delete on Echelix-specific files
 
 **Symptom:**
-```
+
+```text
 CONFLICT (modify/delete): claude-pick deleted in HEAD and modified in <sha>
 ```
 
 Wait — that's the opposite direction. The realistic version:
-```
+
+```text
 CONFLICT (modify/delete): start/README.md deleted in <sha> and modified in HEAD
 ```
 
@@ -229,7 +231,8 @@ git cherry-pick --skip
 ### Pattern C — `core/cli/` vs `cli/` path mismatch
 
 **Symptom:**
-```
+
+```text
 CONFLICT (modify/delete): cli/entrypoints.py deleted in HEAD and modified in <sha>
 ```
 
@@ -260,7 +263,8 @@ If the change touches a symbol that doesn't exist in your fork's `api/app.py`,
 ### Pattern D — Feature commit landing before its dependency
 
 **Symptom:**
-```
+
+```text
 CONFLICT (modify/delete): providers/kimi/request.py deleted in HEAD and modified in <sha>
 ```
 
@@ -317,7 +321,7 @@ These categories are safe to skip and rarely worth the merge friction:
 
 ### 2026-05 second sync (2026-05-13) — 17 upstream commits
 
-```
+```text
 6b7ba35 feat: add Wafer provider
 d63605e Add NVIDIA NIM CLI smoke matrix and tool schema aliasing
 7491b04 Add Claude CLI smoke matrices
@@ -344,6 +348,7 @@ Conflict patterns hit: A (README ×6), C (`core/cli/` path ×4 — entrypoints, 
 session; `api/admin_config.py` package ref).
 
 Additional Echelix fixups committed after cherry-picks:
+
 - All new upstream test files used `cli.*` / `cli.session.*` / `cli.entrypoints.*` patch
   targets — updated to `core.cli.*` throughout.
 - `api/admin_config.py:_template_text()` referenced `importlib.resources.files("cli")` —
@@ -356,7 +361,7 @@ Result: 5 failures (all pre-existing on main); +130 new passing tests.
 
 ### 2026-05 first sync — 14 upstream commits
 
-```
+```text
 9367b40 fix: accept betas body field (#360)
 06e0fb3 feat: add Kimi (Moonshot) provider (#335)
 6c9b2b4 Filter OpenRouter model variants by thinking support
@@ -374,6 +379,7 @@ e7d5ad2 fixed deepseek issue
 ```
 
 Skipped:
+
 - `d78869d` "Removed cached models list" — would have deleted `nvidia_nim_models.json`.
 - All upstream README/image/config-default commits.
 
