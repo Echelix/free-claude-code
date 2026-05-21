@@ -32,6 +32,7 @@ def _make_settings(**overrides):
     mock.deepseek_api_key = "test_deepseek_key"
     mock.wafer_api_key = "test_wafer_key"
     mock.opencode_api_key = "test_opencode_key"
+    mock.opencode_go_api_key = "test_opencode_go_key"
     mock.zai_api_key = "test_zai_key"
     mock.lm_studio_base_url = "http://localhost:1234/v1"
     mock.llamacpp_base_url = "http://localhost:8080/v1"
@@ -43,6 +44,7 @@ def _make_settings(**overrides):
     mock.kimi_proxy = ""
     mock.wafer_proxy = ""
     mock.opencode_proxy = ""
+    mock.opencode_go_proxy = ""
     mock.zai_proxy = ""
     mock.provider_rate_limit = 40
     mock.provider_rate_window = 60
@@ -89,6 +91,16 @@ def test_ollama_descriptor_uses_native_anthropic_transport():
     assert "native_anthropic" in descriptor.capabilities
 
 
+def test_opencode_go_provider_config_uses_correct_base_url_and_name():
+    with patch("httpx.AsyncClient"):
+        provider = create_provider("opencode_go", _make_settings())
+
+    assert isinstance(provider, OpenCodeProvider)
+    assert provider._base_url == "https://opencode.ai/zen/go/v1"
+    assert provider._provider_name == "OPENCODE_GO"
+    assert provider._api_key == "test_opencode_go_key"
+
+
 def test_create_provider_uses_native_openrouter_by_default():
     with patch("httpx.AsyncClient"):
         provider = create_provider("open_router", _make_settings())
@@ -106,6 +118,7 @@ def test_create_provider_instantiates_each_builtin():
         "ollama": OllamaProvider,
         "wafer": WaferProvider,
         "opencode": OpenCodeProvider,
+        "opencode_go": OpenCodeProvider,
         "zai": ZaiProvider,
     }
 
