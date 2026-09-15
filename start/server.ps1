@@ -1,3 +1,5 @@
+# server.ps1 - Run the proxy in the foreground (Ctrl-C to stop).
+# For a detached background server use: fcc-start
 $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -9,9 +11,5 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     $env:PATH = "$env:USERPROFILE\.local\bin;$env:USERPROFILE\.cargo\bin;$env:PATH"
 }
 
-uv self update
-uv python install 3.14
 uv sync
-
-& ".venv\Scripts\Activate.ps1"
-uvicorn server:app --host 0.0.0.0 --port 8082
+uv run fcc-server @args
