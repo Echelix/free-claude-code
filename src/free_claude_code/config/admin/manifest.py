@@ -463,6 +463,16 @@ _NON_PROVIDER_FIELDS: tuple[ConfigFieldSpec, ...] = (
         restart_required=True,
     ),
     ConfigFieldSpec(
+        "TRUNCATE_LOG_ON_START",
+        "Truncate Log On Start",
+        "diagnostics",
+        "boolean",
+        settings_attr="truncate_log_on_start",
+        description="Clear the server log on each start. Disable to keep an audit trail.",
+        advanced=True,
+        restart_required=True,
+    ),
+    ConfigFieldSpec(
         "DEBUG_PLATFORM_EDITS",
         "Debug Platform Edits",
         "diagnostics",

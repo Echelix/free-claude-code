@@ -242,3 +242,35 @@ def test_configure_logging_updates_verbosity_on_same_level(tmp_path) -> None:
     logger.info("still logging")
     logger.complete()
     assert "still logging" in Path(log_file).read_text(encoding="utf-8")
+
+
+def test_configure_logging_truncates_existing_file_by_default(tmp_path) -> None:
+    """Echelix: a fresh configuration clears the previous run's log."""
+    log_file = tmp_path / "server.log"
+    log_file.write_text("stale line\n", encoding="utf-8")
+
+    configure_logging(log_file, force=True)
+
+    assert log_file.read_text(encoding="utf-8") == ""
+
+
+def test_configure_logging_can_preserve_existing_file_for_audit(tmp_path) -> None:
+    """Echelix: TRUNCATE_LOG_ON_START=false appends instead of truncating."""
+    log_file = tmp_path / "server.log"
+    log_file.write_text("stale line\n", encoding="utf-8")
+
+    configure_logging(log_file, force=True, truncate_on_start=False)
+    logger.info("appended after restart")
+    logger.complete()
+
+    content = log_file.read_text(encoding="utf-8")
+    assert content.startswith("stale line\n")
+    assert "appended after restart" in content
+
+
+def test_configure_logging_preserve_mode_creates_missing_file(tmp_path) -> None:
+    log_file = tmp_path / "nested" / "server.log"
+
+    configure_logging(log_file, force=True, truncate_on_start=False)
+
+    assert log_file.is_file()

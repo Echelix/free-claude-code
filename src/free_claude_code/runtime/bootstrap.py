@@ -47,6 +47,7 @@ def build_asgi_app(
         log_path,
         level=settings.log_level,
         verbose_third_party=settings.log_raw_api_payloads,
+        truncate_on_start=settings.truncate_log_on_start,
     )
     openai_auth = OpenAIAuthManager(proxy=settings.openai_proxy)
     copilot_auth = CopilotAuthManager()

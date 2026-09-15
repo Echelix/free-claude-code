@@ -144,6 +144,7 @@ def configure_logging(
     force: bool = False,
     verbose_third_party: bool = False,
     level: str = "INFO",
+    truncate_on_start: bool = True,
 ) -> None:
     """Configure loguru with JSON output to log_file and intercept stdlib logging.
 
@@ -154,6 +155,9 @@ def configure_logging(
 
     When ``verbose_third_party`` is false, managed noisy third-party loggers
     are capped at WARNING unless explicitly configured otherwise.
+
+    When ``truncate_on_start`` is true (default), a fresh configuration truncates
+    the log file. Set false to append to the existing file for an audit trail.
     """
     global _configured, _current_path, _current_level, _current_verbose, _sink_id
 
@@ -174,7 +178,10 @@ def configure_logging(
 
         logger.remove()
 
-        log_path.write_text("")
+        if truncate_on_start:
+            log_path.write_text("")
+        else:
+            log_path.touch()
 
         _sink_id = _add_file_sink(log_path, level)
 

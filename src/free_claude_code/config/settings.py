@@ -597,6 +597,11 @@ class Settings(BaseModel):
     # ==================== Debug / diagnostic logging (avoid sensitive content) ====================
     # Minimum log level for the JSON file sink (DEBUG, INFO, WARNING, ERROR, CRITICAL).
     log_level: NonEmptyString = Field(default="INFO", validation_alias="LOG_LEVEL")
+    # Echelix: when true (default), the server log is truncated on each fresh start.
+    # Set false to keep an append-only audit trail across restarts.
+    truncate_log_on_start: bool = Field(
+        default=True, validation_alias="TRUNCATE_LOG_ON_START"
+    )
     # When false (default), API and SSE helpers log only metadata (counts, lengths, ids).
     log_raw_api_payloads: bool = Field(
         default=False, validation_alias="LOG_RAW_API_PAYLOADS"
