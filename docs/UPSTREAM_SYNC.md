@@ -315,6 +315,87 @@ These categories are safe to skip and rarely worth the merge friction:
 
 ## Reference: prior sync example
 
+### 2026-09 sync (2026-09-15) — 28 upstream commits
+
+Upstream had 505 unpicked commits. Only the window before upstream's June 2026
+refactor wave (transports/API/messaging/CLI packages, then `src/free_claude_code/`
+namespace move `71a78a0c` on 2026-07-09) was cherry-pickable. Picked, oldest first:
+
+```text
+f389cf41 fix: default logs to logs/ and ignore rotations (issue 427)
+e5edffa2 Pass proxy auth token to Telegram CLI sessions
+d05446f0 Remove Anthropic API key from proxy child env
+23e409cb Add fireworks AI support (#476)
+fe98abf6 feat(admin): add Fireworks API key and proxy to admin manifest
+f5e49ea7 Add OpenCode Go subscription gateway provider (#505)
+51d5f29a fix(opencode_go): authenticate with OPENCODE_API_KEY
+87057693 Add Mistral Provider
+1324c36d Add Gemini Provider
+b2f66db0 Add Groq Provider
+ab842fd9 Add Cereberas Provider
+fbb1d658 feat(providers): native Anthropic Messages for Kimi, Fireworks, Z.ai
+a4d7d760 Add Codestral Provider
+26c5b356 Reorder providers in README and other places
+8ae77959 fix(gemini): nest google extra body for sdk
+cebdc02a fix: accept system role messages
+e4d6dc1f fix: avoid dual gemini thinking controls
+d501e522 Fix live provider smoke defaults
+885c26d9 Surface upstream provider errors
+fedcc0a3 Fix Gemini thought signature replay
+044a152f Add Gemini thought signature smoke
+0eee1da0 Try mid stream retries
+b867e080 Improve smoke provider coverage and skips
+0fb4c7d6 fix: remove duplicate api/admin_static wheel force-include
+103869f6 Ignore removed thinking env keys
+544008a9 Removed stale ignore (resolved to no-op; fork never had `server.*`)
+e79b430c Raise stream and upstream retry attempts to five total.
+c1af215f fix: normalize proxy auth token whitespace
+```
+
+Skipped (deliberate):
+
+- `a728994e` / `ac2c37f6` / `fc3ef0b5` — relocate config from `~/.config/free-claude-code`
+  to `~/.fcc` and add `config/paths.py`. Fork keeps the original location.
+- `37974db1` / `943c3db6` / `494c6c9d` / `bd2aaed8` / `543da3d6` — admin UX refactor;
+  depends on the `~/.fcc` relocation and removes user-configurable `CLAUDE_WORKSPACE`,
+  `CLAUDE_CLI_BIN`, `ZAI_BASE_URL`.
+- `89d86d11` Removed PLAN.md (fork keeps it), CI restructure, compaction-window tweaks,
+  install/uninstall scripts under `scripts/` (fork uses `start/`), all README/.env.example/
+  dep-bump commits.
+- Everything from `3abe41d2` (Codex, 2026-06-16) onward — see "Residual" below.
+
+Conflict patterns hit: A (README ×8), plus new variants:
+
+- `config/logging_config.py` / `config/settings.py` — fork has `truncate_log_on_start` and
+  audit-log docstring; merged upstream's `mkdir(parents=True)` + `logs/server.log` default.
+- `tests/api/test_admin.py` ×4 — each provider commit re-adds the same four admin-UX-only
+  tests (`*_omits_stale_*`, `*_preserves_hidden_*`) and `not in keys` asserts. Kept only the
+  provider-specific test and assert; rewrote env path `.fcc/.env` → `.config/free-claude-code/.env`.
+- `config/provider_catalog.py` — took upstream order wholesale, re-added `base_url_attr="zai_base_url"`.
+- `pyproject.toml` / `uv.lock` ×4 — upstream version bumps; kept fork `2.0.0`, re-ran `uv lock`.
+- `api/app.py` — upstream uses `server_log_path()` from skipped `config/paths.py`; kept ours
+  (fork's `Settings.log_file` already honours `LOG_FILE`).
+- **Gotcha:** `uv run python` refuses to start while `pyproject.toml` has conflict markers.
+  Use `.venv/bin/python` for resolution scripts, or `git add` will stage the markers.
+
+Echelix fixups committed after cherry-picks:
+
+- `tests/cli/test_cli.py`, `tests/cli/test_cli_manager_edge_cases.py`: `cli.*` → `core.cli.*`
+  (the latter also repaired 3 failures that were pre-existing on main).
+- `tests/providers/test_registry.py`: import `build_provider_config`.
+- Docs (`docs/SECURITY.md`, `start/README.md`, `README_NVIDIA.md`) reference `logs/server.log`.
+
+Result: 2 failures (both pre-existing on main: `test_admin_config_masks_secrets_and_exposes_manifest`,
+`test_core_does_not_import_product_packages`), down from 5; +147 new passing tests (1451 total).
+
+**Residual:** ~315 upstream commits after 2026-06-16 are not cherry-pickable with this
+playbook. Upstream refactored transports, API pipeline, messaging, CLI, settings and admin
+into packages (June 2026) and then moved all runtime code under `src/free_claude_code/`
+(`71a78a0c`, 2026-07-09). Future syncs need a different strategy (re-base the Echelix
+additions onto upstream, or path-rewritten patch application).
+
+---
+
 ### 2026-05 second sync (2026-05-13) — 17 upstream commits
 
 ```
