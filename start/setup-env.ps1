@@ -1,6 +1,6 @@
 # setup-env.ps1 - Install uv + Python 3.14, sync the project, and configure PowerShell functions
 #
-# Adds fcc-start / fcc-stop / fcc-status / claudex functions to $PROFILE pointing at this checkout's .venv.
+# Adds fcc-start / fcc-stop / fcc-status / fcc-models / claudex functions to $PROFILE pointing at this checkout's .venv.
 
 $ErrorActionPreference = "Stop"
 
@@ -33,6 +33,7 @@ $Functions = @(
     "function fcc-start { & `"$VenvScripts\fcc-start.exe`" @args }",
     "function fcc-stop { & `"$VenvScripts\fcc-stop.exe`" @args }",
     "function fcc-status { & `"$VenvScripts\fcc-status.exe`" @args }",
+    "function fcc-models { & `"$VenvScripts\fcc-models.exe`" @args }",
     "function claudex { & `"$VenvScripts\claudex.exe`" @args }"
 )
 
@@ -43,7 +44,7 @@ $Content = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue
 if ($Content -and $Content -match "function fcc-start") {
     Write-Host "Functions already configured in $PROFILE"
 } else {
-    $response = Read-Host "Add fcc-start / fcc-stop / fcc-status / claudex functions to $PROFILE? (y/n)"
+    $response = Read-Host "Add fcc-start / fcc-stop / fcc-status / fcc-models / claudex functions to $PROFILE? (y/n)"
     if ($response -match "^[Yy]$") {
         Add-Content $PROFILE ""
         Add-Content $PROFILE "# Free Claude Code functions (added by start\setup-env.ps1 on $(Get-Date))"

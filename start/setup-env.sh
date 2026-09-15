@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # setup-env.sh - Install uv + Python 3.14, sync the project, and configure shell aliases
 #
-# Adds fcc-start / fcc-stop / fcc-status / claudex aliases pointing at this checkout's .venv.
+# Adds fcc-start / fcc-stop / fcc-status / fcc-models / claudex aliases pointing at this checkout's .venv.
 
 set -euo pipefail
 
@@ -42,6 +42,7 @@ ALIASES=(
     "alias fcc-start='$VENV_BIN/fcc-start'"
     "alias fcc-stop='$VENV_BIN/fcc-stop'"
     "alias fcc-status='$VENV_BIN/fcc-status'"
+    "alias fcc-models='$VENV_BIN/fcc-models'"
     "alias claudex='$VENV_BIN/claudex'"
 )
 
@@ -55,7 +56,7 @@ done
 if [[ "$ALIASES_EXIST" == true ]]; then
     echo "Aliases already configured in $SHELL_RC"
 else
-    echo "Add the fcc-start / fcc-stop / fcc-status / claudex aliases to $SHELL_RC? (y/n)"
+    echo "Add the fcc-start / fcc-stop / fcc-status / fcc-models / claudex aliases to $SHELL_RC? (y/n)"
     read -r response
     if [[ "$response" =~ ^[Yy]$ ]]; then
         {

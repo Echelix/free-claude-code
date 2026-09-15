@@ -21,7 +21,7 @@
 | Proxy process | `fcc-server`, started detached by `fcc-start`; PID in `~/.fcc/fcc.pid` |
 | Logs | `~/.fcc/logs/server.log` (JSON lines) |
 | Admin UI | `http://localhost:8082/admin` |
-| Commands | `fcc-start`, `fcc-stop`, `fcc-status`, `claudex` (console scripts in `.venv/bin`) |
+| Commands | `fcc-start`, `fcc-stop`, `fcc-status`, `fcc-models`, `claudex` (console scripts in `.venv/bin`) |
 
 **What changed from the pre-September layout:** the repo-local `.env` is no longer the
 config source. FCC imports it into `~/.fcc/.env` once on first start and then ignores it.
@@ -57,9 +57,10 @@ cd free-claude-code
 
 1. Installs or updates uv and installs Python 3.14.
 2. Runs `uv sync`, which creates `.venv` and installs the project, so
-   `.venv/bin/fcc-start`, `fcc-stop`, `fcc-status` and `claudex` exist.
+   `.venv/bin/fcc-start`, `fcc-stop`, `fcc-status`, `fcc-models` and `claudex` exist.
 3. Warns if `~/.fcc/.env` does not exist yet (you create it in step 3).
-4. Offers to append aliases for the four commands to your shell profile
+4. Offers to append aliases for `fcc-start`, `fcc-stop`, `fcc-status`, `fcc-models` and
+   `claudex` to your shell profile
    (`~/.zshrc`, `~/.bash_profile` or `~/.profile`; `$PROFILE` on Windows).
 
 Answer `y` to the alias prompt, then reload your shell:
