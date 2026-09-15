@@ -1,5 +1,6 @@
 __pycache__
 .claude/*
+!.claude/CLAUDE.md
 !.claude/skills/
 .cursor
 .pytest_cache
