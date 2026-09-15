@@ -509,7 +509,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_sets_proxy_auth_token(self):
         """Test start_task forwards configured proxy auth to Claude Code."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession(
             "/tmp", "http://localhost:8082/v1", auth_token="proxy-token"
@@ -538,7 +538,7 @@ class TestCLISession:
     @pytest.mark.asyncio
     async def test_start_task_removes_stale_auth_token_when_proxy_auth_blank(self):
         """Test start_task does not leak inherited Claude auth into proxy calls."""
-        from cli.session import CLISession
+        from core.cli.session import CLISession
 
         session = CLISession("/tmp", "http://localhost:8082/v1", auth_token="")
 

@@ -25,6 +25,7 @@ from providers.opencode import OpenCodeProvider
 from providers.registry import (
     PROVIDER_DESCRIPTORS,
     ProviderRegistry,
+    build_provider_config,
     create_provider,
 )
 from providers.wafer import WaferProvider
