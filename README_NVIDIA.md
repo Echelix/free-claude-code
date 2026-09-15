@@ -175,7 +175,7 @@ flowchart TD
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `TRUNCATE_LOG_ON_START` | Clear `server.log` each time the proxy starts | `true` |
+| `TRUNCATE_LOG_ON_START` | Clear `logs/server.log` each time the proxy starts | `true` |
 | `LOG_API_ERROR_TRACEBACKS` | Include full tracebacks in API error log entries | `true` |
 | `LOG_RAW_API_PAYLOADS` | Log full request/response bodies (may contain sensitive data) | `false` |
 | `LOG_RAW_SSE_EVENTS` | Log every SSE event from the provider stream | `false` |

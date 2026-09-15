@@ -264,7 +264,7 @@ See [README_NVIDIA.md](../README_NVIDIA.md) for the complete reference. All vari
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
 | `LOG_API_ERROR_TRACEBACKS` | Include full tracebacks in error log entries | `false` |
-| `TRUNCATE_LOG_ON_START` | Clear `server.log` each time the proxy starts | `true` |
+| `TRUNCATE_LOG_ON_START` | Clear `logs/server.log` each time the proxy starts | `true` |
 
 #### Messaging (disabled by default)
 

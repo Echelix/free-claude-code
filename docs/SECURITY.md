@@ -27,7 +27,7 @@ When running the proxy in its default configuration (NVIDIA NIM provider, no bot
 | Destination | What is sent | Condition |
 |---|---|---|
 | `https://integrate.api.nvidia.com` | Your full prompt + conversation history | Every LLM request |
-| `server.log` (local disk) | Metadata only (counts, IDs, model names) by default | Every request |
+| `logs/server.log` (local disk) | Metadata only (counts, IDs, model names) by default | Every request |
 | `https://lite.duckduckgo.com` | Search query text | Only if `ENABLE_WEB_SERVER_TOOLS=true` AND Claude triggers `web_search` |
 | Target URL host | Fetched page content (stays local, returned to Claude) | Only if `ENABLE_WEB_SERVER_TOOLS=true` AND Claude triggers `web_fetch` |
 | Telegram API / Discord gateway | Message text and Claude responses | Only if bot is configured and running |
@@ -203,7 +203,7 @@ Only enable if you need Claude to browse the web. When enabled, Claude can initi
 
 ### Logging (`config/logging_config.py`)
 
-- All logs written as JSON lines to `server.log`
+- All logs written as JSON lines to `logs/server.log`
 - Telegram bot token URLs are regex-redacted before writing
 - `Authorization: Bearer <token>` patterns are regex-redacted
 - Log file is **truncated to zero on each startup** — no persistent history
