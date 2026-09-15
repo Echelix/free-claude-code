@@ -11,10 +11,18 @@ RETIRED_PROVIDER_IDS = frozenset({"github_models"})
 # Echelix: deprecated NVIDIA NIM model refs and their drop-in replacements.
 # Keys are complete ``provider/org/name`` refs. Add an entry whenever NIM retires a
 # model so managed config self-heals instead of failing startup model validation.
+# Verify the live list with ``fcc-models`` (or GET {NIM base}/models) before editing.
 DEPRECATED_NVIDIA_NIM_MODELS: dict[str, str] = {
-    "nvidia_nim/moonshotai/kimi-k2-thinking": "nvidia_nim/qwen/qwen3-next-80b-a3b-thinking",
-    "nvidia_nim/moonshotai/kimi-k2-instruct": "nvidia_nim/qwen/qwen3.5-122b-a10b",
-    "nvidia_nim/moonshotai/kimi-k2.6": "nvidia_nim/qwen/qwen3-next-80b-a3b-thinking",
+    # Kimi K2 family retired (2026-05)
+    "nvidia_nim/moonshotai/kimi-k2-thinking": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+    "nvidia_nim/moonshotai/kimi-k2-instruct": "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b",
+    # Qwen family reached end of life on NIM (2026-07-27)
+    "nvidia_nim/qwen/qwen3-next-80b-a3b-thinking": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+    "nvidia_nim/qwen/qwen3.5-397b-a17b": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+    "nvidia_nim/qwen/qwen3.5-122b-a10b": "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b",
+    # GLM 4.7 / GLM 5 replaced by GLM 5.3 Flash
+    "nvidia_nim/z-ai/glm4.7": "nvidia_nim/z-ai/glm-5.3-flash",
+    "nvidia_nim/z-ai/glm5": "nvidia_nim/z-ai/glm-5.3-flash",
 }
 _MODEL_ROUTE_KEYS = (
     "MODEL",

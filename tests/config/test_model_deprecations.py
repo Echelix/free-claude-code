@@ -21,7 +21,7 @@ def test_deprecation_map_targets_are_not_themselves_deprecated() -> None:
         assert new not in DEPRECATED_NVIDIA_NIM_MODELS
 
 
-@pytest.mark.parametrize("ref", ["nvidia_nim/qwen/qwen3.5-397b-a17b", "groq/a", ""])
+@pytest.mark.parametrize("ref", ["nvidia_nim/moonshotai/kimi-k3", "groq/a", ""])
 def test_replace_deprecated_model_ref_leaves_current_refs_alone(ref: str) -> None:
     assert replace_deprecated_model_ref(ref) == ref
 
@@ -36,7 +36,7 @@ def test_normalize_replaces_deprecated_route_and_fallback_refs(
 ) -> None:
     values = {
         "MODEL": OLD,
-        "MODEL_SONNET": "nvidia_nim/qwen/qwen3.5-397b-a17b",
+        "MODEL_SONNET": "nvidia_nim/moonshotai/kimi-k3",
         "MODEL_HAIKU": "nvidia_nim/moonshotai/kimi-k2-instruct",
         "MODEL_FALLBACKS": f"groq/a,{OLD},deepseek/b",
         "UNRELATED": "kept",
@@ -47,8 +47,10 @@ def test_normalize_replaces_deprecated_route_and_fallback_refs(
     )
 
     assert normalized["MODEL"] == NEW
-    assert normalized["MODEL_SONNET"] == "nvidia_nim/qwen/qwen3.5-397b-a17b"
-    assert normalized["MODEL_HAIKU"] == "nvidia_nim/qwen/qwen3.5-122b-a10b"
+    assert normalized["MODEL_SONNET"] == "nvidia_nim/moonshotai/kimi-k3"
+    assert (
+        normalized["MODEL_HAIKU"] == "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b"
+    )
     assert normalized["MODEL_FALLBACKS"] == f"groq/a,{NEW},deepseek/b"
     assert normalized["UNRELATED"] == "kept"
     assert values["MODEL"] == OLD, "input mapping must not be mutated"

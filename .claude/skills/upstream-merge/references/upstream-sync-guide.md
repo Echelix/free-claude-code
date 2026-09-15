@@ -55,15 +55,16 @@ Everything the fork adds on top of upstream. Keep all of it on every merge.
 | `AGENTS.md`, `CLAUDE.md` | Coding-agent directives (upstream removed theirs) |
 | `.claude/skills/` | `upstream-merge` and `python-api-docs` skills |
 | `src/free_claude_code/cli/background.py` | `fcc-start` / `fcc-stop` / `fcc-status` |
-| `tests/cli/test_background.py` | Tests for the above |
+| `src/free_claude_code/cli/models_check.py` | `fcc-models`: configured refs vs live provider `/models` |
+| `tests/cli/test_background.py`, `tests/cli/test_models_check.py` | Tests for the above |
 | `tests/config/test_model_deprecations.py` | Tests for the NIM deprecation self-heal |
 
 ### Edits inside upstream-owned files
 
 | File | Echelix change | Marker |
 | ---- | -------------- | ------ |
-| `pyproject.toml` | `claudex`, `fcc-start`, `fcc-stop`, `fcc-status` console scripts | comment `# Echelix background-server workflow` |
-| `tests/cli/test_entrypoints.py` | `test_cli_scripts_are_registered` expects the four extra scripts | the four entries |
+| `pyproject.toml` | `claudex`, `fcc-start`, `fcc-stop`, `fcc-status`, `fcc-models` console scripts | comment `# Echelix background-server workflow` |
+| `tests/cli/test_entrypoints.py` | `test_cli_scripts_are_registered` expects the five extra scripts | the five entries |
 | `src/free_claude_code/config/model_refs.py` | `DEPRECATED_NVIDIA_NIM_MODELS`, `replace_deprecated_model_ref`, applied inside `normalize_retired_model_settings` | comment `# Echelix:` |
 | `src/free_claude_code/config/settings.py` | `truncate_log_on_start` (`TRUNCATE_LOG_ON_START`) | comment `# Echelix:` |
 | `src/free_claude_code/config/logging_config.py` | `truncate_on_start` parameter of `configure_logging` | docstring paragraph |

@@ -21,6 +21,9 @@ This guide covers the Echelix workflow: one managed config file, a background pr
 - **Per-tier routing.** Route Opus / Sonnet / Haiku to different NIM models independently.
 - **Deprecated models self-heal.** Retired NIM refs listed in
   `src/free_claude_code/config/model_refs.py` are rewritten to their replacement on start.
+- **`fcc-models` checks the live catalogue.** Providers retire models without notice
+  (NIM returns HTTP 410 "end of life"); run it after every update and whenever requests
+  start failing.
 - **Native model picker.** Inside Claude Code, `/model` lists every NIM model the proxy
   exposes, so no separate picker script is needed.
 
@@ -136,10 +139,10 @@ flowchart TD
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `MODEL` | Fallback model for unrecognised tiers | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` |
-| `MODEL_OPUS` | Model for Claude Opus requests | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` |
-| `MODEL_SONNET` | Model for Claude Sonnet requests | `nvidia_nim/qwen/qwen3.5-397b-a17b` |
-| `MODEL_HAIKU` | Model for Claude Haiku requests | `nvidia_nim/qwen/qwen3.5-122b-a10b` |
+| `MODEL` | Fallback model for unrecognised tiers | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` |
+| `MODEL_OPUS` | Model for Claude Opus requests | `nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b` |
+| `MODEL_SONNET` | Model for Claude Sonnet requests | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` |
+| `MODEL_HAIKU` | Model for Claude Haiku requests | `nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b` |
 | `MODEL_FALLBACKS` | Ordered fallbacks tried when a provider fails before output | unset |
 | `REASONING_POLICY` | Root reasoning policy: `off`, `client`, `low` … `max` | `client` |
 | `REASONING_OPUS` / `REASONING_SONNET` / `REASONING_HAIKU` | Per-tier override, or `inherit` | `inherit` / `off` / `off` |
@@ -208,17 +211,45 @@ Claude Code sends requests using three model tiers.
 
 ### Recommended NVIDIA NIM Models
 
+Verified against the live NIM catalogue on 2026-09-15. Prefer NVIDIA-owned models: the
+`qwen/*` family and the Kimi K2 family were removed from NIM within a few months.
+
 | Model | Value | Notes |
 | ----- | ----- | ----- |
-| Qwen 3.5 397B | `nvidia_nim/qwen/qwen3.5-397b-a17b` | Best for Sonnet: large MoE, strong tool calling |
-| Qwen3 Next 80B Thinking | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` | Best for Opus: reasoning model |
-| Qwen 3.5 122B | `nvidia_nim/qwen/qwen3.5-122b-a10b` | Haiku: fast, non-thinking |
-| Nemotron 3 Super 120B | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` | Upstream default; solid general fallback |
+| Nemotron 3 Super 120B | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` | Sonnet and fallback: upstream default, reasoning-capable, strong tool calling |
+| Nemotron 3 Ultra 550B | `nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b` | Opus: largest reasoning model on NIM |
+| Nemotron 3.5 Lightning 30B | `nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b` | Haiku: fast and cheap |
+| Kimi K3 | `nvidia_nim/moonshotai/kimi-k3` | Alternative Sonnet/Opus pick for agentic coding |
+| GLM 5.3 Flash | `nvidia_nim/z-ai/glm-5.3-flash` | Lightweight alternative for Haiku |
+| DeepSeek V4 Flash | `nvidia_nim/deepseek-ai/deepseek-v4-flash-0731` | Alternative fast model |
 
 > Avoid `mistralai/devstral-2-123b-instruct-2512` for the Sonnet slot: it emits malformed
 > tool-call JSON.
 
-To browse the live catalogue, start the proxy and run `/model` inside Claude Code, or:
+### Keeping models in sync with NIM
+
+NIM does not announce retirements in `/v1/models`; a retired model simply disappears from
+the list and requests to it return HTTP 410 "has reached its end of life". Three layers
+keep the config healthy:
+
+1. **`fcc-models`** (Echelix) compares every configured `MODEL*` ref with the provider's
+   live `/models` list and exits non-zero when one is missing:
+
+   ```bash
+   fcc-models
+   # nvidia_nim/nvidia/nemotron-3-super-120b-a12b     LIVE
+   # nvidia_nim/qwen/qwen3.5-397b-a17b                MISSING    not in the provider's current model list
+   #   → replace nvidia_nim/qwen/qwen3.5-397b-a17b with nvidia_nim/nvidia/nemotron-3-super-120b-a12b
+   ```
+
+   Run it after `git pull`, after changing models, and whenever Claude Code reports a
+   `410` from NIM. It works without the proxy running.
+2. **Self-heal map** in `src/free_claude_code/config/model_refs.py`: when NIM retires a
+   model, add `old → replacement` there. On the next start FCC rewrites `~/.fcc/.env`
+   and logs the repair, so every developer picks up the fix with `git pull`.
+3. **`/model` inside Claude Code** shows the live catalogue for ad-hoc switching.
+
+To browse the raw catalogue:
 
 ```bash
 curl -H "Authorization: Bearer $NVIDIA_NIM_API_KEY" https://integrate.api.nvidia.com/v1/models
@@ -229,7 +260,7 @@ curl -H "Authorization: Bearer $NVIDIA_NIM_API_KEY" https://integrate.api.nvidia
 When NIM retires a model, add it to `DEPRECATED_NVIDIA_NIM_MODELS` in
 `src/free_claude_code/config/model_refs.py`. On the next start FCC rewrites the old ref in
 `~/.fcc/.env` to the replacement and logs the repair. Current entries map the retired Kimi
-K2 models to their Qwen replacements.
+K2 and Qwen models to Nemotron replacements, and GLM 4.7 / GLM 5 to GLM 5.3 Flash.
 
 ---
 
@@ -241,11 +272,13 @@ K2 models to their Qwen replacements.
 2. Port in use: another FCC instance is running; `fcc-stop` or change `PORT`.
 3. Validation errors name the offending key in `~/.fcc/.env`.
 
-### Model fails to load
+### Model fails to load, or NIM returns HTTP 410 "end of life"
 
-1. Check the model ref format: `nvidia_nim/<org>/<model>`.
-2. Verify the API key with the curl command above.
-3. Look for a "Repaired retired provider selections" line in the log: the ref was deprecated.
+1. Run `fcc-models`; replace every `MISSING` ref in `~/.fcc/.env` (or Admin → Model Config).
+2. Restart: `fcc-stop && fcc-start`.
+3. Add the retired ref to `DEPRECATED_NVIDIA_NIM_MODELS` so other checkouts self-heal.
+4. Check the model ref format: `nvidia_nim/<org>/<model>`, and verify the API key with the
+   curl command above.
 
 ### Thinking tokens not appearing
 

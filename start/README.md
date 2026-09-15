@@ -114,10 +114,10 @@ Everything else in the template is a working default:
 
 | Key | Template value | Meaning |
 | --- | -------------- | ------- |
-| `MODEL` | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` | Fallback model for unknown tiers |
-| `MODEL_OPUS` | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` | Reasoning-heavy requests |
-| `MODEL_SONNET` | `nvidia_nim/qwen/qwen3.5-397b-a17b` | Most Claude Code traffic |
-| `MODEL_HAIKU` | `nvidia_nim/qwen/qwen3.5-122b-a10b` | Fast, cheap requests |
+| `MODEL` | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` | Fallback model for unknown tiers |
+| `MODEL_OPUS` | `nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b` | Reasoning-heavy requests |
+| `MODEL_SONNET` | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` | Most Claude Code traffic |
+| `MODEL_HAIKU` | `nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b` | Fast, cheap requests |
 | `REASONING_POLICY` / `REASONING_*` | `client` / `inherit`, `off`, `off` | Replaces `ENABLE_*_THINKING` |
 | `PORT` | `8082` | Proxy port |
 | `FCC_OPEN_BROWSER` | `false` | Keeps `fcc-start` headless |
@@ -125,6 +125,12 @@ Everything else in the template is a working default:
 | `MESSAGING_PLATFORM` | `none` | Bots stay disabled |
 
 Only this machine needs the proxy? Add `HOST=127.0.0.1`.
+
+**Check the models are still served** (providers retire models without notice):
+
+```bash
+fcc-models                 # every line should read LIVE; exits 1 if anything is MISSING
+```
 
 Migrating from the old layout? Copy your previous repo `.env` to `~/.fcc/.env` instead of
 the template. FCC rewrites `ENABLE_*_THINKING` keys and retired Kimi K2 model refs on first
@@ -153,6 +159,7 @@ Running it again while the proxy is up prints `Proxy already running (PID …)`.
 fcc-status                                   # Proxy is running (PID 41234)
 curl -s http://localhost:8082/health         # {"status":"healthy"}
 tail -n 3 ~/.fcc/logs/server.log
+fcc-models                                   # all configured models LIVE
 ```
 
 On first start FCC also writes `FCC_CONFIG_SCHEMA=1` into `~/.fcc/.env` and reorders the
@@ -221,6 +228,7 @@ automatically by the next `fcc-status` or `fcc-start`.
 fcc-start          # once per boot
 claudex            # in each project, as often as you like
 fcc-stop           # when you are done
+fcc-models         # whenever a request fails with HTTP 410, or after git pull
 ```
 
 The proxy survives closed terminals and multiple `claudex` sessions.
@@ -233,6 +241,7 @@ The proxy survives closed terminals and multiple `claudex` sessions.
 cd free-claude-code
 git pull
 uv sync
+fcc-models                 # confirm the configured models are still served
 fcc-stop && fcc-start
 ```
 
@@ -247,12 +256,14 @@ Your config is untouched: it lives in `~/.fcc/.env`, not in the repo.
 | `fcc-start` | Spawn `fcc-server` detached; write `~/.fcc/fcc.pid`; no-op if already running |
 | `fcc-status` | Report whether the recorded PID is alive; remove a stale PID file |
 | `fcc-stop` | Signal the recorded PID and remove the PID file |
+| `fcc-models` | Compare configured `MODEL*` refs with each provider's live `/models` list; exit 1 if any is missing |
 | `claudex` | Wait for the proxy, inject token and base URL, run `claude …` |
 | `fcc-server` | Run the proxy in the foreground (Ctrl-C to stop); useful for debugging |
 | `fcc-server --version` | Print the installed version |
 
 Implementation: `fcc-start`/`fcc-stop`/`fcc-status` are in
-`src/free_claude_code/cli/background.py`; `claudex` is registered in `pyproject.toml`
+`src/free_claude_code/cli/background.py`, `fcc-models` in
+`src/free_claude_code/cli/models_check.py`; `claudex` is registered in `pyproject.toml`
 alongside `fcc-claude`.
 
 ### Scripts in this directory
@@ -273,7 +284,8 @@ alongside `fcc-claude`.
 | `fcc-status` says running but `curl /health` fails | Server still booting (wait a few seconds) or crashed after fork: read `~/.fcc/logs/server.log` |
 | `Could not start FCC: [Errno 48] Address already in use` in the log | Another proxy on `PORT`; `fcc-stop`, or change `PORT` in `~/.fcc/.env` |
 | Claude Code returns `401` | Token mismatch: `claudex` reads `~/.fcc/.env`, so a stale `ANTHROPIC_AUTH_TOKEN` exported in your shell is not the cause; check the value in the file and restart |
-| `MODEL … is not available` in the log | Model ref typo or retired model; fix in Admin → Model Config. Retired Kimi K2 refs are auto-repaired |
+| `API Error: 410 … has reached its end of life` | Provider retired the model. Run `fcc-models`, replace the `MISSING` refs, restart. Known retirements are auto-repaired on start |
+| `MODEL … is not available` in the log | Model ref typo or retired model; run `fcc-models`, fix in Admin → Model Config |
 | Browser opens on every `fcc-start` | `FCC_OPEN_BROWSER=true` in `~/.fcc/.env`; set it to `false` |
 | Logs vanish after restart | Expected with `TRUNCATE_LOG_ON_START=true`; set `false` to keep an audit trail |
 | Old repo `.env` edits have no effect | Config moved to `~/.fcc/.env`; edit there or in the Admin UI |
