@@ -299,6 +299,7 @@ def test_bootstrap_configures_default_log_and_publishes_only_services(tmp_path):
         Path(log_path),
         level=settings.log_level,
         verbose_third_party=settings.log_raw_api_payloads,
+        truncate_on_start=settings.truncate_log_on_start,
     )
     api_app = cast(FastAPI, asgi_app.app)
     assert set(api_app.state._state) == {"services"}
