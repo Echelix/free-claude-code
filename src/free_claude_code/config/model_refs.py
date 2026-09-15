@@ -8,6 +8,22 @@ from .constants import DEFAULT_MODEL
 
 RETIRED_PROVIDER_IDS = frozenset({"github_models"})
 
+# Echelix: deprecated NVIDIA NIM model refs and their drop-in replacements.
+# Keys are complete ``provider/org/name`` refs. Add an entry whenever NIM retires a
+# model so managed config self-heals instead of failing startup model validation.
+DEPRECATED_NVIDIA_NIM_MODELS: dict[str, str] = {
+    "nvidia_nim/moonshotai/kimi-k2-thinking": "nvidia_nim/qwen/qwen3-next-80b-a3b-thinking",
+    "nvidia_nim/moonshotai/kimi-k2-instruct": "nvidia_nim/qwen/qwen3.5-122b-a10b",
+    "nvidia_nim/moonshotai/kimi-k2.6": "nvidia_nim/qwen/qwen3-next-80b-a3b-thinking",
+}
+_MODEL_ROUTE_KEYS = (
+    "MODEL",
+    "MODEL_FABLE",
+    "MODEL_OPUS",
+    "MODEL_SONNET",
+    "MODEL_HAIKU",
+)
+
 
 def is_retired_model_ref(model_ref: str) -> bool:
     """Recognize complete references owned by a retired provider."""
@@ -28,13 +44,23 @@ def parse_model_fallbacks(value: object) -> object:
     return value
 
 
+def replace_deprecated_model_ref(model_ref: str) -> str:
+    """Return the replacement for a deprecated NVIDIA NIM ref, else the ref unchanged."""
+
+    return DEPRECATED_NVIDIA_NIM_MODELS.get(model_ref.strip(), model_ref)
+
+
 def normalize_retired_model_settings(
     values: Mapping[str, str], *, preserve_empty_overrides: bool
 ) -> dict[str, str]:
     """Repair one source without changing its precedence or unrelated validation."""
 
     normalized = dict(values)
-    for key in ("MODEL", "MODEL_FABLE", "MODEL_OPUS", "MODEL_SONNET", "MODEL_HAIKU"):
+    for key in _MODEL_ROUTE_KEYS:
+        current = normalized.get(key, "")
+        replacement = replace_deprecated_model_ref(current)
+        if replacement != current:
+            normalized[key] = replacement
         if is_retired_model_ref(normalized.get(key, "")):
             if preserve_empty_overrides:
                 normalized[key] = DEFAULT_MODEL if key == "MODEL" else ""
@@ -42,7 +68,8 @@ def normalize_retired_model_settings(
                 normalized.pop(key)
     fallbacks = parse_model_fallbacks(normalized.get("MODEL_FALLBACKS"))
     if isinstance(fallbacks, tuple) and all(fallbacks):
-        retained = tuple(ref for ref in fallbacks if not is_retired_model_ref(ref))
+        replaced = tuple(replace_deprecated_model_ref(ref) for ref in fallbacks)
+        retained = tuple(ref for ref in replaced if not is_retired_model_ref(ref))
         if retained != fallbacks:
             if retained or preserve_empty_overrides:
                 normalized["MODEL_FALLBACKS"] = ",".join(retained)
