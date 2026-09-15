@@ -641,6 +641,29 @@ Windows PowerShell:
 & ([scriptblock]::Create((irm "https://raw.githubusercontent.com/Alishahryar1/free-claude-code/main/scripts/uninstall.ps1")))
 ```
 
+## Echelix Fork
+
+This repository is the [Echelix](https://github.com/Echelix/free-claude-code) fork of
+Free Claude Code. It tracks upstream `main` and adds a headless background-server
+workflow plus NVIDIA NIM-focused documentation.
+
+| Document | Purpose |
+| -------- | ------- |
+| [README_NVIDIA.md](README_NVIDIA.md) | NVIDIA NIM setup: managed config at `~/.fcc/.env`, model tiers, auth token |
+| [start/README.md](start/README.md) | Background proxy workflow: `fcc-start` / `fcc-stop` / `fcc-status` / `claudex` |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security audit: data egress, auth, logging, recommended hardening |
+| [docs/UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md) | How to merge upstream without losing the Echelix layer |
+| [AGENTS.md](AGENTS.md) | Coding-agent directives for this fork |
+
+Fork-specific commands and settings:
+
+| Addition | Where |
+| -------- | ----- |
+| `fcc-start`, `fcc-stop`, `fcc-status` | `src/free_claude_code/cli/background.py` |
+| `claudex` (alias of `fcc-claude`) | `pyproject.toml` scripts |
+| `TRUNCATE_LOG_ON_START` (Admin → Diagnostics) | `config/settings.py`, `config/logging_config.py` |
+| NVIDIA NIM deprecated-model self-heal | `config/model_refs.py` |
+
 ## Project Links
 
 - [Report bugs or request features](https://github.com/Alishahryar1/free-claude-code/issues)

@@ -1,5 +1,11 @@
 # Security Assessment: free-claude-code
 
+> **Scope note (2026-09-15).** This audit was performed against the Echelix fork at
+> version 2.0.0 (git tag `pre-rebase-2026-09`). The fork has since been re-based onto
+> upstream 6.2.31 (`src/free_claude_code/` layout, managed config in `~/.fcc/.env`,
+> explicit `PROXY_AUTH_ENABLED`). File references below were remapped to the new layout
+> and findings annotated where the new code changes them; a full re-audit is pending.
+
 > Deep-dive audit performed April 27, 2026.  
 > Scope: data egress, secret handling, proxy security, logging, and attack surface.
 
@@ -27,7 +33,7 @@ When running the proxy in its default configuration (NVIDIA NIM provider, no bot
 | Destination | What is sent | Condition |
 |---|---|---|
 | `https://integrate.api.nvidia.com` | Your full prompt + conversation history | Every LLM request |
-| `logs/server.log` (local disk) | Metadata only (counts, IDs, model names) by default | Every request |
+| `~/.fcc/logs/server.log` (local disk) | Metadata only (counts, IDs, model names) by default | Every request |
 | `https://lite.duckduckgo.com` | Search query text | Only if `ENABLE_WEB_SERVER_TOOLS=true` AND Claude triggers `web_search` |
 | Target URL host | Fetched page content (stays local, returned to Claude) | Only if `ENABLE_WEB_SERVER_TOOLS=true` AND Claude triggers `web_fetch` |
 | Telegram API / Discord gateway | Message text and Claude responses | Only if bot is configured and running |
@@ -64,28 +70,29 @@ This flag disables all Claude Code permission prompts — Claude will read files
 
 ### MEDIUM — Weak Public-Default Auth Token
 
-**File:** `.env` line 16, `api/dependencies.py` lines 89–122  
+**File:** `~/.fcc/.env`, `src/free_claude_code/api/dependencies.py` (`require_proxy_auth`)  
 **Status:** Active risk if proxy is reachable beyond localhost.
 
 The value `freecc` is the project's publicly documented default `ANTHROPIC_AUTH_TOKEN`, listed in the README and visible on GitHub. Anyone who knows this project can authenticate to your proxy and consume your NVIDIA NIM quota.
 
-The auth mechanism itself is correctly implemented — it checks `x-api-key`, `Authorization: Bearer`, and `anthropic-auth-token` headers, strips model-name suffixes (e.g. `freecc:model/name`), and returns 401 for missing or mismatched tokens. The weakness is purely in using a guessable default.
+The auth mechanism itself is correctly implemented — it checks `x-api-key` and `Authorization: Bearer` headers with a constant-time comparison and returns 401 for missing or mismatched tokens. Since the re-base, enforcement is an explicit switch: `PROXY_AUTH_ENABLED=true` (the Echelix template default). The weakness is purely in using a guessable default token.
 
-**Mitigation:** Change `ANTHROPIC_AUTH_TOKEN` in `.env` to a long random secret (32+ chars). The `.env` value always overrides any shell environment variable (`prefer_dotenv_anthropic_auth_token` validator).
+**Mitigation:** Keep `PROXY_AUTH_ENABLED=true` and set `ANTHROPIC_AUTH_TOKEN` in `~/.fcc/.env` to a long random secret (32+ chars).
 
 ---
 
 ### MEDIUM — Proxy Binds to All Interfaces
 
-**File:** `config/settings.py` (`host` default), launch command  
+**File:** `src/free_claude_code/config/settings.py` (`host` default)  
 **Status:** Active risk on any machine connected to a LAN or VPN.
 
-The default run command (`--host 0.0.0.0`) binds the proxy to all network interfaces. Combined with the weak default token above, anyone on the same LAN or VPN can reach your proxy and use your NIM API key without ever learning the key value itself.
+The default `HOST=0.0.0.0` binds the proxy to all network interfaces. Combined with the weak default token above, anyone on the same LAN or VPN can reach your proxy and use your NIM API key without ever learning the key value itself.
 
 **Mitigation (preferred):** Bind to loopback only:
 
-```powershell
-uv run uvicorn server:app --host 127.0.0.1 --port 8082
+```dotenv
+# ~/.fcc/.env
+HOST=127.0.0.1
 ```
 
 This single change eliminates both the interface-exposure and weak-token risks simultaneously, since the proxy becomes unreachable from outside your machine.
@@ -94,7 +101,9 @@ This single change eliminates both the interface-exposure and weak-token risks s
 
 ### LOW — Log File Truncated on Restart (No Audit Trail)
 
-**File:** `config/logging_config.py`
+**File:** `src/free_claude_code/config/logging_config.py`
+
+**Status:** Mitigated by the Echelix `TRUNCATE_LOG_ON_START` setting (default `true` keeps the original behaviour).
 
 On every startup, the log file is wiped:
 
@@ -104,13 +113,13 @@ Path(log_file).write_text("")
 
 This is intentional for clean debugging but means there is no persistent audit trail. If a request results in a downstream incident (e.g. NIM quota exhaustion, unexpected charges), past log context is gone after the next restart.
 
-**Mitigation:** If you need retention, redirect or copy logs before restart, or replace the truncation with log rotation (e.g. `logger.add(..., rotation="10 MB", retention="7 days")`).
+**Mitigation:** Set `TRUNCATE_LOG_ON_START=false` in `~/.fcc/.env` (or Admin → Diagnostics). Logs then append across restarts and rotate at 50 MB with five retained files.
 
 ---
 
 ### LOW — Web Fetch Identifies the Proxy to Target Servers
 
-**File:** `api/web_tools/constants.py`
+**File:** `src/free_claude_code/api/web_tools/`
 
 When `ENABLE_WEB_SERVER_TOOLS=true`, all outbound web requests carry:
 
@@ -145,14 +154,14 @@ Listed in priority order for a local single-user setup:
 
 ### 1. Bind to loopback (eliminates LAN exposure)
 
-```powershell
-# In your launch command
-uv run uvicorn server:app --host 127.0.0.1 --port 8082
+```dotenv
+# ~/.fcc/.env
+HOST=127.0.0.1
 ```
 
 ### 2. Change the auth token if you keep `0.0.0.0`
 
-Generate a random token and set it in `.env`:
+Generate a random token and set it in `~/.fcc/.env` with `PROXY_AUTH_ENABLED=true`:
 
 ```dotenv
 ANTHROPIC_AUTH_TOKEN=<your-long-random-secret-here>
@@ -193,20 +202,19 @@ Only enable if you need Claude to browse the web. When enabled, Claude can initi
 
 ## Raw Notes by Subsystem
 
-### Proxy Auth (`api/dependencies.py`)
+### Proxy Auth (`src/free_claude_code/api/dependencies.py`)
 
-- `require_api_key` is a FastAPI dependency applied to every route
-- Accepts token in `x-api-key`, `Authorization: Bearer <token>`, or `anthropic-auth-token` header
-- Strips `:model/suffix` from tokens (supports `freecc:provider/model` format)
-- When `ANTHROPIC_AUTH_TOKEN` is empty string, auth is completely disabled (open proxy)
-- `.env` value always wins over shell env via `prefer_dotenv_anthropic_auth_token` model validator
+- `require_proxy_auth` / `require_anthropic_proxy_auth` are FastAPI dependencies applied to proxied routes
+- Accepts token in `x-api-key` or `Authorization: Bearer <token>` header (constant-time compare)
+- Enforcement is controlled by `PROXY_AUTH_ENABLED`; when `false` the proxy is open
+- The token-suffix model override (`freecc:provider/model`) was removed upstream; use `/model` in Claude Code instead
 
-### Logging (`config/logging_config.py`)
+### Logging (`src/free_claude_code/config/logging_config.py`)
 
-- All logs written as JSON lines to `logs/server.log`
+- All logs written as JSON lines to `~/.fcc/logs/server.log`
 - Telegram bot token URLs are regex-redacted before writing
 - `Authorization: Bearer <token>` patterns are regex-redacted
-- Log file is **truncated to zero on each startup** — no persistent history
+- Log file is truncated on each startup unless `TRUNCATE_LOG_ON_START=false`
 - Sensitive content only logged when explicit debug flags are set
 
 ### Outbound HTTP
@@ -216,7 +224,7 @@ Only enable if you need Claude to browse the web. When enabled, Claude can initi
 - Web fetch: `aiohttp.ClientSession` with pinned DNS resolver (SSRF mitigation)
 - No proxy, CDN, or relay in the path — direct connection to provider endpoint
 
-### CLI Subprocess (`cli/session.py`)
+### CLI Subprocess (`src/free_claude_code/cli/managed/session.py`)
 
 - Prompt text passed as a command-line argument (`-p <prompt>`) to `claude` binary
 - `asyncio.create_subprocess_exec` used (not shell=True) — no shell injection
@@ -225,7 +233,7 @@ Only enable if you need Claude to browse the web. When enabled, Claude can initi
 - `--dangerously-skip-permissions` is always passed in bot mode (see HIGH finding)
 - stderr is drained and capped at 256 KB to prevent memory exhaustion
 
-### Voice Transcription (`messaging/transcription.py`, `messaging/voice.py`)
+### Voice Transcription (`src/free_claude_code/messaging/transcription.py`, `messaging/voice.py`)
 
 - Local Whisper (cpu/cuda): model weights downloaded from HuggingFace on first use; audio processed entirely on-device, nothing sent externally
 - NVIDIA NIM Whisper: audio file sent to NIM endpoint using same `NVIDIA_NIM_API_KEY`

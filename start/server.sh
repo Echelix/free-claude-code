@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# server.sh - Run the proxy in the foreground (Ctrl-C to stop).
+# For a detached background server use: fcc-start
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,12 +12,5 @@ if ! command -v uv &>/dev/null; then
     export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 fi
 
-# Remove any pyenv .python-version pin that would override uv's managed Python
-rm -f .python-version
-
-uv self update
-uv python install 3.14
 uv sync
-
-source .venv/bin/activate
-uvicorn server:app --host 0.0.0.0 --port 8082
+exec uv run fcc-server "$@"

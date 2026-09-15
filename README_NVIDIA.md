@@ -1,6 +1,7 @@
 # NVIDIA NIM Setup Guide
 
-> Configure your Free Claude Code proxy against NVIDIA NIM. For OpenRouter, DeepSeek, LM Studio, llama.cpp, and Ollama, see the provider walk-throughs in the root [README.md](README.md).
+> Configure the Echelix fork of Free Claude Code against NVIDIA NIM. For other providers
+> see [Choose A Provider](README.md#choose-a-provider) in the root README.
 
 ![Python 3.14](https://img.shields.io/badge/python-3.14-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-yellow)
@@ -9,65 +10,77 @@
 
 ## Overview
 
-This guide covers NVIDIA NIM environment configuration for the Free Claude Code proxy. It explains how to set up your `.env` file from `.env.nvidia.example`, choose appropriate NIM models for each Claude tier, and configure authentication tokens.
+Free Claude Code (FCC) is a local proxy that lets Claude Code talk to NVIDIA NIM models.
+This guide covers the Echelix workflow: one managed config file, a background proxy, and a
+`claudex` launcher.
 
-**Key capabilities:**
+**Key facts:**
 
-- **Per-model routing** — Route Opus/Sonnet/Haiku to different backends independently
-- **Multi-provider support** — Mix NVIDIA NIM, OpenRouter, DeepSeek, and local providers
-- **Thinking token support** — Parse `<think>` tags and `reasoning_content` into native Claude thinking blocks
+- **Config lives in `~/.fcc/.env`.** FCC manages it; the Admin UI edits it. A repo-local
+  `.env` is imported into it once on first start and then ignored.
+- **Per-tier routing.** Route Opus / Sonnet / Haiku to different NIM models independently.
+- **Deprecated models self-heal.** Retired NIM refs listed in
+  `src/free_claude_code/config/model_refs.py` are rewritten to their replacement on start.
+- **Native model picker.** Inside Claude Code, `/model` lists every NIM model the proxy
+  exposes, so no separate picker script is needed.
 
 ---
 
 ## Quick Start
 
-The recommended workflow uses `fcc-start` (background proxy) and `claudex` (Claude Code launcher) from the [`start/` workflow](start/README.md). The proxy reads its configuration from `.env`; `start/run.sh` and `start/run.ps1` read the auth token from `.env` so there is a single source of truth.
-
-### Step 1: Create environment file
+### Step 1: Install dependencies
 
 ```bash
-# From the project root
-cp .env.nvidia.example .env
+git clone https://github.com/Echelix/free-claude-code.git
+cd free-claude-code
+./start/setup-env.sh          # installs uv + Python 3.14, runs uv sync, offers shell aliases
 ```
 
-### Step 2: Generate the auth token
+Windows PowerShell: `.\start\setup-env.ps1`.
+
+### Step 2: Create the managed config
+
+```bash
+mkdir -p ~/.fcc
+cp .env.nvidia.example ~/.fcc/.env
+```
+
+### Step 3: Generate the auth token
 
 ```bash
 openssl rand -base64 32
 ```
 
-Paste the output as the value of `ANTHROPIC_AUTH_TOKEN` in `.env`. **Do not** hardcode the token anywhere else — `start/run.sh` and `start/run.ps1` read it from `.env` at launch.
+Paste the output as `ANTHROPIC_AUTH_TOKEN` in `~/.fcc/.env` and keep
+`PROXY_AUTH_ENABLED=true`. Nothing else needs the token: `claudex` and `fcc-claude` read
+it from the managed config before launching Claude Code.
 
-### Step 3: Configure your provider
+### Step 4: Configure the provider
 
-Edit `.env` with your `NVIDIA_NIM_API_KEY` and any model overrides. See [Choosing Models](#choosing-models) for recommendations.
-
-### Step 4: Set up shell aliases
-
-Follow [`start/README.md`](start/README.md) to add the `fcc-start`, `fcc-stop`, `fcc-status`, and `claudex` aliases to your shell profile (zsh / bash / PowerShell).
+Set `NVIDIA_NIM_API_KEY` and adjust `MODEL_*` in `~/.fcc/.env`. See
+[Choosing Models](#choosing-models). Alternatively start the proxy and use the Admin UI
+at `http://localhost:8082/admin`.
 
 ### Step 5: Start the proxy
 
 ```bash
-fcc-start          # background, returns immediately
-fcc-status         # confirm it's running
+fcc-start          # detached background server, returns immediately
+fcc-status         # confirm it is running
 ```
 
-The proxy listens on `http://localhost:8082` and validates configured models against the NIM catalog at startup — it will refuse to start if any `MODEL_*` references a model that NIM does not currently expose.
+The proxy listens on `http://localhost:8082`. Logs go to `~/.fcc/logs/server.log`.
 
 ### Step 6: Launch Claude Code
 
 ```bash
-claudex            # reads .env, sets ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN, runs claude
+claudex            # equivalent to fcc-claude: waits for the proxy, sets env, runs claude
 ```
 
-To stop the background proxy:
+Stop the proxy when done:
 
 ```bash
 fcc-stop
 ```
-
-> **Why not `uv run uvicorn server:app …`?** That works, but you'd need to forward `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` to every Claude invocation manually. `fcc-start` + `claudex` does that for you and survives across multiple Claude sessions.
 
 ---
 
@@ -80,16 +93,15 @@ sequenceDiagram
     actor User
     participant CC as Claude Code CLI<br/>or VSCode Extension
     participant Proxy as Free Claude Code Proxy<br/>(FastAPI :8082)
-    participant LLM as LLM Provider<br/>(NIM / OpenRouter / Local)
+    participant LLM as NVIDIA NIM
 
     User->>CC: "Explain this file"
-    CC->>Proxy: POST /v1/messages<br/>Authorization: Bearer freecc
+    CC->>Proxy: POST /v1/messages<br/>Authorization: Bearer <token>
     Proxy->>Proxy: Validate auth token
     Proxy->>Proxy: Resolve model tier<br/>(MODEL_SONNET / MODEL_OPUS)
-    Proxy->>LLM: Provider-specific request<br/>(OpenAI or Anthropic format)
-    LLM->>LLM: Generate streaming response
+    Proxy->>LLM: OpenAI-compatible chat request
     LLM-->>Proxy: SSE stream<br/>(text + tool_use + reasoning)
-    Proxy->>Proxy: Parse thinking tokens<br/>Convert to Claude format
+    Proxy->>Proxy: Convert to Anthropic events
     Proxy-->>CC: Anthropic-format SSE stream
     CC->>User: Formatted response
 ```
@@ -102,42 +114,37 @@ flowchart TD
     B -->|Opus| C{MODEL_OPUS set?}
     B -->|Sonnet| D{MODEL_SONNET set?}
     B -->|Haiku| E{MODEL_HAIKU set?}
-
     C -->|Yes| F[Use MODEL_OPUS]
-    C -->|No| G[Use MODEL fallback]
-
+    C -->|No| G[Use MODEL]
     D -->|Yes| H[Use MODEL_SONNET]
     D -->|No| G
-
     E -->|Yes| I[Use MODEL_HAIKU]
     E -->|No| G
-
-    F --> J[Resolve provider prefix]
+    F --> J[Route to provider]
     H --> J
     I --> J
     G --> J
-
-    J --> K[Route to provider]
 ```
 
 ---
 
 ## Configuration
 
-> Defaults below reflect `.env.nvidia.example`. See the root [README.md](README.md) for non-NVIDIA provider configurations.
+> Defaults below reflect `.env.nvidia.example`. Every key is also editable in the Admin UI.
 
 ### Core Variables
 
-| Variable | Description | Required | Default |
-| -------- | ----------- | -------- | ------- |
-| `MODEL` | Fallback model for unrecognized tiers | Yes | `"nvidia_nim/qwen/qwen3-next-80b-a3b-thinking"` |
-| `MODEL_OPUS` | Model for Claude Opus requests | No | `"nvidia_nim/qwen/qwen3-next-80b-a3b-thinking"` |
-| `MODEL_SONNET` | Model for Claude Sonnet requests | No | `"nvidia_nim/qwen/qwen3.5-397b-a17b"` |
-| `MODEL_HAIKU` | Model for Claude Haiku requests | No | `"nvidia_nim/qwen/qwen3.5-122b-a10b"` |
-| `ENABLE_MODEL_THINKING` | Enable thinking token parsing | No | `true` |
-| `ENABLE_SONNET_THINKING` | Override thinking for Sonnet tier | No | `false` |
-| `ENABLE_OPUS_THINKING` | Override thinking for Opus tier | No | inherits |
-| `ENABLE_HAIKU_THINKING` | Override thinking for Haiku tier | No | inherits |
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `MODEL` | Fallback model for unrecognised tiers | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` |
+| `MODEL_OPUS` | Model for Claude Opus requests | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` |
+| `MODEL_SONNET` | Model for Claude Sonnet requests | `nvidia_nim/qwen/qwen3.5-397b-a17b` |
+| `MODEL_HAIKU` | Model for Claude Haiku requests | `nvidia_nim/qwen/qwen3.5-122b-a10b` |
+| `MODEL_FALLBACKS` | Ordered fallbacks tried when a provider fails before output | unset |
+| `REASONING_POLICY` | Root reasoning policy: `off`, `client`, `low` … `max` | `client` |
+| `REASONING_OPUS` / `REASONING_SONNET` / `REASONING_HAIKU` | Per-tier override, or `inherit` | `inherit` / `off` / `off` |
+
+The legacy `ENABLE_*_THINKING` keys are migrated to `REASONING_*` automatically.
 
 ### Provider API Keys
 
@@ -145,183 +152,115 @@ flowchart TD
 | -------- | -------- | ------------ |
 | `NVIDIA_NIM_API_KEY` | NVIDIA NIM | `nvidia_nim/*` models |
 | `OPENROUTER_API_KEY` | OpenRouter | `open_router/*` models |
-| `DEEPSEEK_API_KEY` | DeepSeek | `deepseek/*` models |
 
-### Local Provider URLs
+### Proxy Authentication
 
-| Variable | Default | Provider |
-| -------- | ------- | -------- |
-| `LM_STUDIO_BASE_URL` | `http://localhost:1234/v1` | LM Studio |
-| `LLAMACPP_BASE_URL` | `http://localhost:8080/v1` | llama.cpp |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama |
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `PROXY_AUTH_ENABLED` | Enforce the bearer token on every request | `true` |
+| `ANTHROPIC_AUTH_TOKEN` | Token clients must send | generate one |
+| `HOST` / `PORT` | Bind address and port | `0.0.0.0` / `8082` |
 
 ### Rate Limiting
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `PROVIDER_RATE_LIMIT` | Max requests allowed per rate window | `40` |
-| `PROVIDER_RATE_WINDOW` | Rate window duration in seconds | `60` |
-| `PROVIDER_MAX_CONCURRENCY` | Max simultaneous in-flight requests to the provider | `5` |
+| `PROVIDER_RATE_LIMIT` | Max requests per rate window | `40` |
+| `PROVIDER_RATE_WINDOW` | Window length in seconds | `60` |
+| `PROVIDER_MAX_CONCURRENCY` | Max in-flight provider requests | `5` |
 
 ### HTTP Timeouts (seconds)
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `HTTP_READ_TIMEOUT` | Time to wait for a response chunk from the provider | `180` |
-| `HTTP_WRITE_TIMEOUT` | Time to wait when writing the upstream request | `10` |
-| `HTTP_CONNECT_TIMEOUT` | Time to wait for a TCP connection to the provider | `2` |
+| `HTTP_READ_TIMEOUT` | Wait for a response chunk | `180` |
+| `HTTP_WRITE_TIMEOUT` | Wait when writing the request | `10` |
+| `HTTP_CONNECT_TIMEOUT` | Wait for a TCP connection | `2` |
 
 ### Logging
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `TRUNCATE_LOG_ON_START` | Clear `logs/server.log` each time the proxy starts | `true` |
-| `LOG_API_ERROR_TRACEBACKS` | Include full tracebacks in API error log entries | `true` |
-| `LOG_RAW_API_PAYLOADS` | Log full request/response bodies (may contain sensitive data) | `false` |
-| `LOG_RAW_SSE_EVENTS` | Log every SSE event from the provider stream | `false` |
+| `LOG_LEVEL` | File sink level (`DEBUG` … `CRITICAL`) | `INFO` |
+| `TRUNCATE_LOG_ON_START` | Echelix: clear `~/.fcc/logs/server.log` on each start; `false` keeps an audit trail | `true` |
+| `LOG_API_ERROR_TRACEBACKS` | Include tracebacks in API error entries | `true` |
+| `LOG_RAW_API_PAYLOADS` | Log request/response bodies (sensitive) | `false` |
 
-### Messaging (disabled by default)
+### Background workflow
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `MESSAGING_PLATFORM` | Bot platform: `"telegram"`, `"discord"`, or `"none"` | `"none"` |
-| `MESSAGING_RATE_LIMIT` | Max outbound messages per rate window | `1` |
+| `FCC_OPEN_BROWSER` | Open the Admin UI in a browser when the server becomes healthy | `false` |
+| `MESSAGING_PLATFORM` | `telegram`, `discord`, or `none` | `none` |
 
 ---
 
 ## Choosing Models
 
-Claude Code sends requests using three model tiers. The proxy maps each tier to a backend model via environment variables.
+Claude Code sends requests using three model tiers.
 
 | Variable | Claude Tier | Role |
 | -------- | ----------- | ---- |
-| `MODEL_SONNET` | Sonnet | Most requests — editing, tool calls, reasoning |
-| `MODEL_OPUS` | Opus | Complex multi-step tasks and reasoning |
-| `MODEL_HAIKU` | Haiku | Fast/cheap tasks and simple queries |
-| `MODEL` | Fallback | Any unrecognized model name |
-
-> **Note:** Sonnet gets the most traffic, so model quality here matters most.
+| `MODEL_SONNET` | Sonnet | Most requests: editing, tool calls |
+| `MODEL_OPUS` | Opus | Complex multi-step reasoning |
+| `MODEL_HAIKU` | Haiku | Fast, cheap tasks |
+| `MODEL` | Fallback | Any unrecognised model name |
 
 ### Recommended NVIDIA NIM Models
 
-| Model | `.env` Value | Notes |
-| ----- | ------------ | ----- |
-| Qwen 3.5 397B | `nvidia_nim/qwen/qwen3.5-397b-a17b` | Best for Sonnet — large MoE, strong tool calling |
-| Qwen 3.5 122B | `nvidia_nim/qwen/qwen3.5-122b-a10b` | Lighter alternative if rate limits are a concern |
-| Qwen3 Next 80B Thinking | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` | Best for Opus — reasoning model |
-| Qwen 3.5 122B | `nvidia_nim/qwen/qwen3.5-122b-a10b` | Recommended for Haiku — non-thinking, fast |
-| GLM5 | `nvidia_nim/z-ai/glm5` | Lightweight fallback for Haiku |
+| Model | Value | Notes |
+| ----- | ----- | ----- |
+| Qwen 3.5 397B | `nvidia_nim/qwen/qwen3.5-397b-a17b` | Best for Sonnet: large MoE, strong tool calling |
+| Qwen3 Next 80B Thinking | `nvidia_nim/qwen/qwen3-next-80b-a3b-thinking` | Best for Opus: reasoning model |
+| Qwen 3.5 122B | `nvidia_nim/qwen/qwen3.5-122b-a10b` | Haiku: fast, non-thinking |
+| Nemotron 3 Super 120B | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` | Upstream default; solid general fallback |
 
-> **Avoid `mistralai/devstral-2-123b-instruct-2512` for the Sonnet slot.** Devstral produces malformed tool call JSON, causing "The model's tool call could not be parsed" errors.
+> Avoid `mistralai/devstral-2-123b-instruct-2512` for the Sonnet slot: it emits malformed
+> tool-call JSON.
 
-### Recommended Configuration
-
-```dotenv
-# Sonnet slot — optimized for tool calling and low latency
-MODEL_SONNET="nvidia_nim/qwen/qwen3.5-397b-a17b"
-ENABLE_SONNET_THINKING=false
-
-# Opus slot — reasoning-heavy tasks
-MODEL_OPUS="nvidia_nim/qwen/qwen3-next-80b-a3b-thinking"
-ENABLE_OPUS_THINKING=true
-
-# Haiku slot — simple queries
-MODEL_HAIKU="nvidia_nim/z-ai/glm5"
-
-# Fallback for unrecognized tiers
-MODEL="nvidia_nim/z-ai/glm5"
-```
-
-> **Why `ENABLE_SONNET_THINKING=false`?** The Sonnet slot handles high-frequency tool calls where latency matters. Leave thinking disabled for faster responses.
-
----
-
-## Authentication
-
-### Proxy Authentication
-
-`ANTHROPIC_AUTH_TOKEN` is **required**. The proxy listens on `0.0.0.0:8082` by default, so without a token any process on your machine — or your local network — can reach it, impersonate a client, and consume your upstream API quota.
-
-### Single source of truth
-
-The token lives in `.env` only. Every consumer reads it from there:
-
-| Consumer | How it reads the token |
-| -------- | ---------------------- |
-| The proxy server (`fcc-start` / `uvicorn server:app`) | Loaded by Pydantic settings from `.env` |
-| `claudex` | Reads `.env` and exports `ANTHROPIC_AUTH_TOKEN` before launching `claude` |
-| `claude-pick` | Reads `.env` and exports the token (also supports `freecc:provider/model` suffix syntax) |
-| `start/run.sh` / `start/run.ps1` | Sources `.env` and exports `ANTHROPIC_AUTH_TOKEN` before launching `claude` |
-
-> **Do not** copy the token literal into `start/run.sh`, `start/run.ps1`, shell aliases, or any tracked file. The shipped scripts read from `.env` precisely so the token never lands in git history.
-
-### Generate
+To browse the live catalogue, start the proxy and run `/model` inside Claude Code, or:
 
 ```bash
-openssl rand -base64 32
+curl -H "Authorization: Bearer $NVIDIA_NIM_API_KEY" https://integrate.api.nvidia.com/v1/models
 ```
 
-```dotenv
-# .env
-ANTHROPIC_AUTH_TOKEN="paste-generated-token-here"
-```
+### Deprecated models
 
-| Configuration | Behavior |
-| ------------- | -------- |
-| Empty or missing | **No authentication — proxy is open to anyone who can reach the port** |
-| Set to any value | All clients must provide a matching `Authorization: Bearer <token>` header |
-
-### Use
-
-```bash
-# Start the proxy in the background, then launch Claude:
-fcc-start
-claudex
-
-# Or use the model picker:
-claude-pick
-
-# Or run the bundled Bash launcher (delegates to claude after sourcing .env):
-./start/run.sh
-```
-
----
-
-## Error Handling
-
-| Error Class | Status | Description |
-| ----------- | ------ | ----------- |
-| `missing_env` | Skip | Required credential or configuration not found |
-| `upstream_unavailable` | Skip | LLM provider API unreachable |
-| `product_failure` | Failure | App crashed or returned wrong shape |
-| `harness_bug` | Failure | Test harness made invalid assumption |
+When NIM retires a model, add it to `DEPRECATED_NVIDIA_NIM_MODELS` in
+`src/free_claude_code/config/model_refs.py`. On the next start FCC rewrites the old ref in
+`~/.fcc/.env` to the replacement and logs the repair. Current entries map the retired Kimi
+K2 models to their Qwen replacements.
 
 ---
 
 ## Troubleshooting
 
+### Proxy will not start
+
+1. `fcc-status` says not running: check `~/.fcc/logs/server.log`.
+2. Port in use: another FCC instance is running; `fcc-stop` or change `PORT`.
+3. Validation errors name the offending key in `~/.fcc/.env`.
+
 ### Model fails to load
 
-1. Check that the model name in `.env` matches the provider format
-2. Verify API key is valid: `curl -H "Authorization: Bearer $NVIDIA_NIM_API_KEY" https://integrate.api.nvidia.com/v1/models`
-3. Ensure provider is accessible from your network
+1. Check the model ref format: `nvidia_nim/<org>/<model>`.
+2. Verify the API key with the curl command above.
+3. Look for a "Repaired retired provider selections" line in the log: the ref was deprecated.
 
 ### Thinking tokens not appearing
 
-1. Verify `ENABLE_MODEL_THINKING=true` (or tier-specific override)
-2. Confirm the model supports reasoning output
-3. Check server logs for parsing errors
+1. Verify `REASONING_POLICY=client` and the tier override is not `off`.
+2. Confirm the model supports reasoning output.
 
 ### Rate limit errors
 
-1. Reduce request frequency or increase `PROVIDER_RATE_WINDOW`
-2. Set `PROVIDER_MAX_CONCURRENCY` to limit simultaneous requests
-3. Consider upgrading API tier or switching providers
+1. Lower `PROVIDER_RATE_LIMIT` or `PROVIDER_MAX_CONCURRENCY`.
+2. Consider a lighter model for the Haiku tier.
 
 ---
 
 ## Related
 
-- [start/README.md](start/README.md) — Production workflow setup
-- [README.md](README.md) — Main project documentation
-- [.env.example](.env.example) — Template environment file
+- [start/README.md](start/README.md): background proxy workflow
+- [README.md](README.md): main project documentation
+- [docs/SECURITY.md](docs/SECURITY.md): security audit and hardening
